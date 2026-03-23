@@ -1,6 +1,6 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import { createStarterDeck, REWARD_POOL, LEGENDARY_POOL, cardNeedsTarget, DEBUG_CARD, BASE_CARDS } from '../data/cards'
-import { getEnemiesForFloor } from '../data/enemies'
+import { getEnemiesForFloor, getDebugEnemies } from '../data/enemies'
 import { generateMap, NODE_TYPES, parseNodeId } from '../data/mapGenerator'
 import {
   shuffleArray,
@@ -14,7 +14,7 @@ import {
 const INITIAL_HP = 80
 const MAX_ENERGY = 3
 const HAND_SIZE = 5
-const IS_DEBUG = import.meta.env.VITE_DEBUG_MODE === 'true'
+const IS_DEBUG = new URLSearchParams(window.location.search).get('isdebug') === 'true'
 
 export const GAME_PHASE = {
   TITLE: 'title',
@@ -55,6 +55,16 @@ export function useGameState() {
   const [stance, setStance] = useState(null)
   const [switchCount, setSwitchCount] = useState(0)
   const [battleEffect, setBattleEffect] = useState(null)
+
+  // 적 턴 애니메이션 상태
+  const [isEnemyTurn, setIsEnemyTurn] = useState(false)
+  const [activeEnemyIndex, setActiveEnemyIndex] = useState(null)
+  const [activeEnemyAction, setActiveEnemyAction] = useState(null) // 'attack' | 'defend' | 'stun'
+  const enemyTurnTimers = useRef([])
+
+  useEffect(() => {
+    return () => enemyTurnTimers.current.forEach(t => clearTimeout(t))
+  }, [])
 
   // 맵 상태
   const [mapFloors, setMapFloors] = useState([])
@@ -129,12 +139,18 @@ export function useGameState() {
       case NODE_TYPES.ELITE:
       case NODE_TYPES.BOSS: {
         // 전투 시작 (인라인)
-        const newEnemies = getEnemiesForFloor(floor)
-        if (node.type === NODE_TYPES.ELITE) {
-          newEnemies.forEach(e => { e.hp = Math.floor(e.hp * 1.5) })
-        } else if (node.type === NODE_TYPES.BOSS) {
-          const bossMult = floor <= 5 ? 1.5 : 2
-          newEnemies.forEach(e => { e.hp = Math.floor(e.hp * bossMult) })
+        let newEnemies
+        if (IS_DEBUG) {
+          // 디버그: 다양한 적 3명
+          newEnemies = getDebugEnemies()
+        } else {
+          newEnemies = getEnemiesForFloor(floor)
+          if (node.type === NODE_TYPES.ELITE) {
+            newEnemies.forEach(e => { e.hp = Math.floor(e.hp * 1.5) })
+          } else if (node.type === NODE_TYPES.BOSS) {
+            const bossMult = floor <= 5 ? 1.5 : 2
+            newEnemies.forEach(e => { e.hp = Math.floor(e.hp * bossMult) })
+          }
         }
 
         const allCards = [...deck]
@@ -260,31 +276,40 @@ export function useGameState() {
   }, [selectedCardIndex, playCardOnTarget])
 
   const endTurn = useCallback(() => {
-    if (phase !== GAME_PHASE.BATTLE) return
+    if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return
     const alive = enemies.filter(e => e.hp > 0)
     if (alive.length === 0) return
 
     setSelectedCardIndex(null)
+    setIsEnemyTurn(true)
+    enemyTurnTimers.current.forEach(t => clearTimeout(t))
+    enemyTurnTimers.current = []
 
-    let currentPlayer = { ...player }
-    let currentEnemies = enemies.map(e => ({ ...e }))
-    let currentEvasionCount = evasionCount
-    let currentEvasionChance = evasionChance
-    let currentCounter = counter
-    let currentBuffs = buffs
-    let currentTaeguk = taeguk
-    let allLogs = []
+    // ── 1. 적 행동 미리 계산 ──
+    let cp = { ...player }
+    let ce = enemies.map(e => ({ ...e }))
+    let cEvCount = evasionCount
+    let cEvChance = evasionChance
+    let cCounter = counter
+    let cBuffs = buffs.map(b => ({ ...b }))
+    let cTaeguk = taeguk
 
-    currentEnemies.forEach((enemy, i) => {
+    const steps = []
+
+    ce.forEach((enemy, i) => {
       if (enemy.hp <= 0) return
 
-      // 스턴(기맥차단) 체크
+      const stepLogs = []
+
       if (enemy.debuffs?.includes('stun')) {
-        currentEnemies[i] = {
-          ...currentEnemies[i],
-          debuffs: enemy.debuffs.filter(d => d !== 'stun'),
-        }
-        allLogs.push(`${enemy.name} 기맥차단! 행동 불가!`)
+        ce[i] = { ...ce[i], debuffs: enemy.debuffs.filter(d => d !== 'stun') }
+        stepLogs.push(`${enemy.name} 기맥차단! 행동 불가!`)
+        steps.push({
+          enemyIndex: i, actionType: 'stun', logs: stepLogs,
+          player: { ...cp }, enemies: ce.map(e => ({ ...e })),
+          taeguk: cTaeguk, evasionCount: cEvCount, evasionChance: cEvChance,
+          buffs: cBuffs.map(b => ({ ...b })),
+        })
         return
       }
 
@@ -292,127 +317,161 @@ export function useGameState() {
       if (!intent) return
 
       if (intent.type === 'attack') {
+        stepLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`)
         const result = processEnemyAttack(intent.damage, {
-          player: currentPlayer,
-          evasionCount: currentEvasionCount,
-          evasionChance: currentEvasionChance,
-          counter: currentCounter,
-          logs: [],
-          buffs: currentBuffs,
+          player: cp, evasionCount: cEvCount, evasionChance: cEvChance,
+          counter: cCounter, logs: [], buffs: cBuffs,
         })
+        cp = result.player
+        cEvCount = result.evasionCount
+        cEvChance = result.evasionChance
+        cBuffs = result.buffs
+        stepLogs.push(...result.logs)
 
-        currentPlayer = result.player
-        currentEvasionCount = result.evasionCount
-        currentEvasionChance = result.evasionChance
-        currentBuffs = result.buffs
-        allLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`)
-        allLogs.push(...result.logs)
-
-        // 회피 시 onEvade 피해 + 태극
         if (result.dodged && result.onEvadeDmg > 0) {
-          const blocked = Math.min(currentEnemies[i].block || 0, result.onEvadeDmg)
-          currentEnemies[i] = {
-            ...currentEnemies[i],
-            block: Math.max(0, (currentEnemies[i].block || 0) - result.onEvadeDmg),
-            hp: currentEnemies[i].hp - (result.onEvadeDmg - blocked),
+          const blocked = Math.min(ce[i].block || 0, result.onEvadeDmg)
+          ce[i] = {
+            ...ce[i],
+            block: Math.max(0, (ce[i].block || 0) - result.onEvadeDmg),
+            hp: ce[i].hp - (result.onEvadeDmg - blocked),
           }
-          allLogs.push(`반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`)
+          stepLogs.push(`반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`)
         }
         if (result.dodged && result.onEvadeTaeguk > 0) {
-          currentTaeguk = (currentTaeguk || 0) + result.onEvadeTaeguk
-          allLogs.push(`회피 보너스! → 태극 +${result.onEvadeTaeguk}`)
+          cTaeguk += result.onEvadeTaeguk
+          stepLogs.push(`회피 보너스! → 태극 +${result.onEvadeTaeguk}`)
         }
-
         if (!result.dodged && result.counterDmg > 0) {
-          const blocked = Math.min(currentEnemies[i].block || 0, result.counterDmg)
-          currentEnemies[i] = {
-            ...currentEnemies[i],
-            block: Math.max(0, (currentEnemies[i].block || 0) - result.counterDmg),
-            hp: currentEnemies[i].hp - (result.counterDmg - blocked),
+          const blocked = Math.min(ce[i].block || 0, result.counterDmg)
+          ce[i] = {
+            ...ce[i],
+            block: Math.max(0, (ce[i].block || 0) - result.counterDmg),
+            hp: ce[i].hp - (result.counterDmg - blocked),
           }
-          allLogs.push(`반격! → ${enemy.name}에게 ${result.counterDmg} 반사`)
+          stepLogs.push(`반격! → ${enemy.name}에게 ${result.counterDmg} 반사`)
         }
       } else if (intent.type === 'defend') {
-        currentEnemies[i] = { ...currentEnemies[i], block: intent.block }
-        allLogs.push(`${enemy.name} 수비 태세 → ${intent.block} 방어`)
+        ce[i] = { ...ce[i], block: intent.block }
+        stepLogs.push(`${enemy.name} 수비 태세 → ${intent.block} 방어`)
       }
+
+      steps.push({
+        enemyIndex: i, actionType: intent.type, logs: stepLogs,
+        player: { ...cp }, enemies: ce.map(e => ({ ...e })),
+        taeguk: cTaeguk, evasionCount: cEvCount, evasionChance: cEvChance,
+        buffs: cBuffs.map(b => ({ ...b })),
+      })
     })
 
-    // 태극유전: 남은 방어를 다음 턴 공력으로 변환
-    const overflowBuff = currentBuffs.find(b => b.overflowBlock)
-    if (overflowBuff && currentPlayer.block > 0) {
-      const bonus = Math.floor(currentPlayer.block * overflowBuff.overflowBlock.ratio)
-      if (bonus > 0) {
-        currentPlayer = { ...currentPlayer, strength: (currentPlayer.strength || 0) + bonus }
-        allLogs.push(`${overflowBuff.name} → 남은 방어 ${currentPlayer.block}의 ${overflowBuff.overflowBlock.ratio * 100}% → 공력 +${bonus}`)
-        // 1턴 후 회수를 위해 grantedStrength 설정
-        overflowBuff.grantedStrength = (overflowBuff.grantedStrength || 0) + bonus
+    // ── 2. 순차 애니메이션 재생 ──
+    const STEP_DELAY = 700
+
+    steps.forEach((step, idx) => {
+      // 적 하이라이트 표시
+      const highlightTimer = setTimeout(() => {
+        setActiveEnemyIndex(step.enemyIndex)
+        setActiveEnemyAction(step.actionType)
+      }, idx * STEP_DELAY)
+      enemyTurnTimers.current.push(highlightTimer)
+
+      // 결과 적용
+      const applyTimer = setTimeout(() => {
+        setPlayer(step.player)
+        setEnemies(step.enemies)
+        setTaeguk(step.taeguk)
+        setEvasionCount(step.evasionCount)
+        setEvasionChance(step.evasionChance)
+        setBuffs(step.buffs)
+        addLogs(step.logs)
+      }, idx * STEP_DELAY + 300)
+      enemyTurnTimers.current.push(applyTimer)
+    })
+
+    // ── 3. 턴 마무리 ──
+    const finishDelay = steps.length * STEP_DELAY + 400
+    const finishTimer = setTimeout(() => {
+      setActiveEnemyIndex(null)
+      setActiveEnemyAction(null)
+
+      const last = steps.length > 0 ? steps[steps.length - 1] : null
+      let fp = last ? { ...last.player } : { ...cp }
+      let fe = last ? last.enemies.map(e => ({ ...e })) : ce.map(e => ({ ...e }))
+      let ft = last ? last.taeguk : cTaeguk
+      let fb = last ? last.buffs.map(b => ({ ...b })) : cBuffs
+      const finishLogs = []
+
+      // 태극유전: 남은 방어 → 공력
+      const overflowBuff = fb.find(b => b.overflowBlock)
+      if (overflowBuff && fp.block > 0) {
+        const bonus = Math.floor(fp.block * overflowBuff.overflowBlock.ratio)
+        if (bonus > 0) {
+          fp = { ...fp, strength: (fp.strength || 0) + bonus }
+          finishLogs.push(`${overflowBuff.name} → 남은 방어 ${fp.block}의 ${overflowBuff.overflowBlock.ratio * 100}% → 공력 +${bonus}`)
+          fb = [...fb, {
+            buffId: 'overflow_strength_' + Date.now(),
+            name: '태극유전 여운', duration: 2, grantedStrength: bonus,
+          }]
+        }
       }
-    }
-    currentPlayer = { ...currentPlayer, block: 0 }
-    currentEvasionCount = 0
-    currentEvasionChance = 0
-    currentCounter = 0
+      fp = { ...fp, block: 0 }
 
-    currentEnemies = currentEnemies.map((e, i) => {
-      if (e.hp <= 0) return e
-      const intent = enemyIntents[i]
-      if (intent?.type === 'defend') return e
-      return { ...e, block: 0 }
-    })
+      fe = fe.map((e, i) => {
+        if (e.hp <= 0) return e
+        const intent = enemyIntents[i]
+        if (intent?.type === 'defend') return e
+        return { ...e, block: 0 }
+      })
 
-    if (currentPlayer.hp <= 0) {
-      setPlayer(currentPlayer)
-      setPhase(GAME_PHASE.GAME_OVER)
-      allLogs.push('태극이 소진되어 쓰러졌다...')
-      addLogs(allLogs)
-      return
-    }
+      if (fp.hp <= 0) {
+        setPlayer(fp)
+        setEnemies(fe)
+        setPhase(GAME_PHASE.GAME_OVER)
+        finishLogs.push('태극이 소진되어 쓰러졌다...')
+        addLogs(finishLogs)
+        setIsEnemyTurn(false)
+        return
+      }
 
-    const newTurn = turn + 1
+      const newTurn = turn + 1
+      const buffResult = applyBuffsOnTurnStart({
+        player: fp, taeguk: ft, counter: 0, buffs: fb, logs: [],
+      })
+      fp = buffResult.player
+      ft = buffResult.taeguk
+      fb = buffResult.buffs
+      finishLogs.push(...buffResult.logs)
 
-    const buffResult = applyBuffsOnTurnStart({
-      player: currentPlayer,
-      taeguk: currentTaeguk,
-      counter: currentCounter,
-      buffs: currentBuffs,
-      logs: [],
-    })
+      const allDiscard = [...discardPile, ...hand]
+      const { drawn, drawPile: newDrawPile, discardPile: newDiscardPile } = drawCards(
+        drawPile, allDiscard, HAND_SIZE
+      )
 
-    currentPlayer = buffResult.player
-    currentTaeguk = buffResult.taeguk
-    currentCounter = buffResult.counter
-    currentBuffs = buffResult.buffs
-    allLogs.push(...buffResult.logs)
+      const MAX_TAEGUK_CARRY = 3
+      if (ft > MAX_TAEGUK_CARRY) {
+        finishLogs.push(`태극 흩어짐: ${ft} → ${MAX_TAEGUK_CARRY}`)
+        ft = MAX_TAEGUK_CARRY
+      }
 
-    const allDiscard = [...discardPile, ...hand]
-    const { drawn, drawPile: newDrawPile, discardPile: newDiscardPile } = drawCards(
-      drawPile, allDiscard, HAND_SIZE
-    )
-
-    setPlayer(currentPlayer)
-    setEnemies(currentEnemies)
-    setTurn(newTurn)
-    setEnergy(MAX_ENERGY)
-    setHand(drawn)
-    setDrawPile(newDrawPile)
-    setDiscardPile(newDiscardPile)
-    setEnemyIntents(currentEnemies.map(e => e.hp > 0 ? getEnemyIntent(e, newTurn) : null))
-    const MAX_TAEGUK_CARRY = 3
-    if (currentTaeguk > MAX_TAEGUK_CARRY) {
-      allLogs.push(`태극 흩어짐: ${currentTaeguk} → ${MAX_TAEGUK_CARRY}`)
-      currentTaeguk = MAX_TAEGUK_CARRY
-    }
-    setTaeguk(currentTaeguk)
-    setBuffs(currentBuffs)
-    setEvasionCount(currentEvasionCount)
-    setEvasionChance(currentEvasionChance)
-    setCounter(currentCounter)
-    setStance(null)
-    setSwitchCount(0)
-
-    addLogs(allLogs)
-  }, [phase, player, enemies, enemyIntents, turn, hand, drawPile, discardPile, evasionCount, evasionChance, counter, taeguk, buffs, switchCount, addLogs])
+      setPlayer(fp)
+      setEnemies(fe)
+      setTurn(newTurn)
+      setEnergy(MAX_ENERGY)
+      setHand(drawn)
+      setDrawPile(newDrawPile)
+      setDiscardPile(newDiscardPile)
+      setEnemyIntents(fe.map(e => e.hp > 0 ? getEnemyIntent(e, newTurn) : null))
+      setTaeguk(ft)
+      setBuffs(fb)
+      setEvasionCount(0)
+      setEvasionChance(0)
+      setCounter(0)
+      setStance(null)
+      setSwitchCount(0)
+      setIsEnemyTurn(false)
+      addLogs(finishLogs)
+    }, finishDelay)
+    enemyTurnTimers.current.push(finishTimer)
+  }, [phase, isEnemyTurn, player, enemies, enemyIntents, turn, hand, drawPile, discardPile, evasionCount, evasionChance, counter, taeguk, buffs, addLogs, addLog])
 
   const clearBattleEffect = useCallback(() => setBattleEffect(null), [])
 
@@ -468,6 +527,7 @@ export function useGameState() {
     enemies, enemyIntents, rewardCards, log, deck,
     selectedCardIndex, taeguk, buffs, evasionCount, counter, stance,
     battleEffect,
+    isEnemyTurn, activeEnemyIndex, activeEnemyAction,
     // 맵 관련
     mapFloors, currentFloor, visitedNodes, availableNodes,
     // 액션

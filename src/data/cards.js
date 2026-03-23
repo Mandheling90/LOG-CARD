@@ -25,8 +25,7 @@ export function cardNeedsTarget(card) {
       (e) =>
         e.type === "damage" ||
         e.type === "finisher" ||
-        e.type === "multiHit" ||
-        (e.type === "stanceSwitch" && e.defenseEffect?.type === "aoe"),
+        e.type === "multiHit",
     );
   }
   return false;

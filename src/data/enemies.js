@@ -63,6 +63,16 @@ function createEnemy(template) {
   return { ...template, block: 0, debuffs: [], uid: `enemy_${enemyUidCounter++}` }
 }
 
+export function getDebugEnemies() {
+  const pool = [...ENEMIES]
+  const picked = []
+  for (let i = 0; i < 3 && pool.length > 0; i++) {
+    const idx = Math.floor(Math.random() * pool.length)
+    picked.push(createEnemy(pool.splice(idx, 1)[0]))
+  }
+  return picked
+}
+
 export function getEnemiesForFloor(floor) {
   if (floor <= 1) return [createEnemy(ENEMIES[0])]
   if (floor <= 2) return [createEnemy(ENEMIES[0]), createEnemy(ENEMIES[0])]

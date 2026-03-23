@@ -27,3 +27,26 @@ html, body, #root {
 .animate-tooltip-in {
   animation: tooltip-in 0.15s ease-out;
 }
+
+@keyframes enemy-attack {
+  0% { transform: translateX(0); }
+  20% { transform: translateX(-12px) scale(1.1); }
+  40% { transform: translateX(8px); }
+  60% { transform: translateX(-4px); }
+  80% { transform: translateX(2px); }
+  100% { transform: translateX(0); }
+}
+.animate-enemy-attack {
+  animation: enemy-attack 0.5s ease-out;
+}
+
+@keyframes player-hit {
+  0% { opacity: 1; }
+  25% { opacity: 0.4; }
+  50% { opacity: 1; }
+  75% { opacity: 0.4; }
+  100% { opacity: 1; }
+}
+.animate-player-hit {
+  animation: player-hit 0.4s ease-out;
+}

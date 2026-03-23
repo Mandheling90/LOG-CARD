@@ -45,14 +45,18 @@ function getCardStance(card) {
       return "attack";
     if (e.type === "block" || e.type === "counter") return "defense";
     if (e.type === "stanceSwitch") return "switch";
+    // 태극 관련 심법은 현재 자세를 유지하되, switchBonus 판정이 가능하도록 "neutral" 반환
+    if (e.type === "taeguk" || e.type === "taegukNextTurn" || e.type === "taegukStrength") return "neutral";
   }
+  // buff만 있는 심법/보법 카드도 neutral 반환
+  if (card.effects.some(e => e.type === "buff")) return "neutral";
   return null;
 }
 
 // 자세 전환이 발생하는지 판별
 function isStanceSwitching(prevStance, newStance, switchBonus) {
   if (!switchBonus || !prevStance || !newStance) return false;
-  if (newStance === "switch") return false;
+  if (newStance === "switch" || newStance === "neutral") return false;
 
   const dir = switchBonus.direction;
   if (dir === "any" && prevStance !== newStance) return true;
@@ -82,7 +86,7 @@ export function processCardEffects(card, state, targetIndex) {
   const prevStance = stance;
   const newStance = getCardStance(card);
   const hasUnityBuff = buffs.some((b) => b.alwaysTriggerSwitchBonus);
-  const switched = (hasUnityBuff && card.switchBonus && newStance)
+  const switched = (hasUnityBuff && card.switchBonus && (newStance || prevStance))
     || isStanceSwitching(prevStance, newStance, card.switchBonus);
 
   if (switched) {
@@ -367,9 +371,13 @@ export function processCardEffects(card, state, targetIndex) {
         if (stance === "attack") {
           stance = "defense";
           logs.push(`${card.name} → 공→수 전환!`);
-        } else {
+        } else if (stance === "defense") {
           stance = "attack";
           logs.push(`${card.name} → 수→공 전환!`);
+        } else {
+          // 자세 없음 → 공격 자세로 전환
+          stance = "attack";
+          logs.push(`${card.name} → 공격 자세 진입!`);
         }
         break;
       }
@@ -442,7 +450,11 @@ export function processCardEffects(card, state, targetIndex) {
       case "consumeTaegukCost": {
         if (taeguk < effect.value) {
           logs.push(`${card.name} → 태극이 부족하다! (${taeguk}/${effect.value})`);
-          break;
+          // 태극 부족 시 이후 효과도 모두 스킵
+          return {
+            player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance, logs,
+            drawCount: 0, switchCount,
+          };
         }
         taeguk -= effect.value;
         logs.push(`${card.name} → 태극 ${effect.value} 소모`);
@@ -511,10 +523,14 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
-  // 자세 전환 감지 → switchCount 증가 + perSwitch 버프 발동
+  // 자세 전환 감지 → 태극 +1 + switchCount 증가 + perSwitch 버프 발동
   let perSwitchDraw = 0;
   if (initialStance !== null && stance !== initialStance) {
     switchCount++;
+    // 공수 전환 시 항상 태극 +1
+    const taegukGain = Math.floor(1 * taegukMult);
+    taeguk += taegukGain;
+    logs.push(`공수전환! → 태극 +${taegukGain}`);
     for (const buff of buffs) {
       if (!buff.perSwitch) continue;
       if (buff.perSwitch.aoeDamage) {

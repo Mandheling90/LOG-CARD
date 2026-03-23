@@ -16,6 +16,7 @@ function App() {
     phase, player, energy, hand, drawPile, discardPile,
     enemies, enemyIntents, rewardCards, log, deck,
     selectedCardIndex, taeguk, buffs, evasionCount, counter, stance,
+    isEnemyTurn, activeEnemyIndex, activeEnemyAction,
     mapFloors, currentFloor, visitedNodes, availableNodes,
     startGame, selectCard, selectTarget, cancelSelection, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
@@ -110,7 +111,9 @@ function App() {
           <div className="text-amber-400 font-bold text-sm md:text-base">⛩️ {currentFloor}층</div>
         </Tooltip>
         <div className="text-gray-500 text-xs md:text-sm">
-          {isTargeting ? (
+          {isEnemyTurn ? (
+            <span className="text-red-400 font-bold animate-pulse">적의 턴</span>
+          ) : isTargeting ? (
             <span className="text-red-400 font-bold animate-pulse">대상을 선택하시오</span>
           ) : (
             '무당검협전'
@@ -138,22 +141,30 @@ function App() {
           />
         </div>
 
-        {/* Battle Log (Center) - hidden on mobile */}
+        {/* Battle Log (Center) - desktop only */}
         <div className="hidden md:block">
           <BattleLog log={log} />
         </div>
 
-        {/* Enemies (Right) */}
-        <div className="md:flex-1 flex justify-center md:justify-start gap-2 md:gap-3">
-          {enemies.map((enemy, i) => (
-            <EnemyDisplay
-              key={enemy.uid}
-              enemy={enemy}
-              intent={enemyIntents[i]}
-              selectable={isTargeting && enemy.hp > 0}
-              onClick={() => isTargeting && enemy.hp > 0 && selectTarget(i)}
-            />
-          ))}
+        {/* Enemies + Mobile Log (Right) */}
+        <div className="md:flex-1 flex flex-col items-center gap-1">
+          <div className="flex justify-center md:justify-start gap-2 md:gap-3">
+            {enemies.map((enemy, i) => (
+              <EnemyDisplay
+                key={enemy.uid}
+                enemy={enemy}
+                intent={enemyIntents[i]}
+                selectable={isTargeting && enemy.hp > 0}
+                onClick={() => isTargeting && enemy.hp > 0 && selectTarget(i)}
+                isActing={isEnemyTurn && activeEnemyIndex === i}
+                actionType={isEnemyTurn && activeEnemyIndex === i ? activeEnemyAction : null}
+              />
+            ))}
+          </div>
+          {/* Mobile Battle Log */}
+          <div className="md:hidden w-full max-w-xs">
+            <BattleLog log={log} mobile />
+          </div>
         </div>
       </div>
 
@@ -176,8 +187,8 @@ function App() {
             <div key={card.uid} className="shrink-0">
               <Card
                 card={card}
-                onClick={() => selectCard(i)}
-                disabled={card.cost > energy}
+                onClick={() => !isEnemyTurn && selectCard(i)}
+                disabled={card.cost > energy || isEnemyTurn}
                 selected={selectedCardIndex === i}
                 mobile
               />
@@ -188,9 +199,9 @@ function App() {
             <Tooltip text="태극 3 소모하여 기력 +1 획득">
               <button
                 onClick={spendTaeguk}
-                disabled={taeguk < 3}
+                disabled={taeguk < 3 || isEnemyTurn}
                 className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all whitespace-nowrap ${
-                  taeguk >= 3
+                  taeguk >= 3 && !isEnemyTurn
                     ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
                     : 'opacity-50 cursor-not-allowed'
                 }`}
@@ -202,9 +213,14 @@ function App() {
             <Tooltip text="턴을 넘기면 적이 행동합니다">
               <button
                 onClick={endTurn}
-                className="px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+                disabled={isEnemyTurn}
+                className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all whitespace-nowrap ${
+                  isEnemyTurn
+                    ? 'opacity-50 cursor-not-allowed'
+                    : 'hover:from-gray-600 hover:to-gray-800 hover:scale-105 cursor-pointer'
+                }`}
               >
-                턴 종료
+                {isEnemyTurn ? '적의 턴...' : '턴 종료'}
               </button>
             </Tooltip>
           </div>

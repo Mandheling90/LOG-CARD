@@ -1,6 +1,6 @@
 import Tooltip from './Tooltip'
 
-export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
+export default function EnemyDisplay({ enemy, intent, selectable, onClick, isActing, actionType }) {
   if (!enemy || enemy.hp <= 0) return null
 
   const maxHp = enemy.hp + 50
@@ -10,6 +10,14 @@ export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
     ? intent.type === 'attack'
       ? `다음 턴에 ${intent.damage} 피해를 줍니다`
       : `다음 턴에 방어력 ${intent.block}을 얻습니다`
+    : ''
+
+  const actingClass = isActing
+    ? actionType === 'attack'
+      ? 'ring-2 ring-red-500 bg-red-900/40 animate-enemy-attack'
+      : actionType === 'defend'
+        ? 'ring-2 ring-blue-500 bg-blue-900/40 animate-pulse'
+        : 'ring-2 ring-yellow-500 bg-yellow-900/40'
     : ''
 
   return (
@@ -22,9 +30,10 @@ export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
           ? 'cursor-pointer hover:bg-red-900/30 hover:scale-105 ring-2 ring-red-500/60 ring-offset-2 ring-offset-gray-950 animate-pulse'
           : 'cursor-default'
         }
+        ${actingClass}
       `}
     >
-      <div className="text-3xl md:text-5xl">{enemy.emoji}</div>
+      <div className={`text-3xl md:text-5xl transition-transform duration-300 ${isActing && actionType === 'attack' ? 'scale-125 -translate-x-2' : ''}`}>{enemy.emoji}</div>
 
       <div className="text-white font-bold text-xs md:text-sm">{enemy.name}</div>
 

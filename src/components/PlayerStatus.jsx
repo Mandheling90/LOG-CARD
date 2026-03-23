@@ -1,5 +1,47 @@
 import Tooltip from './Tooltip'
 
+function getBuffIcon(buff) {
+  if (buff.invincible) return '🔰'
+  if (buff.guaranteedEvade) return '💨'
+  if (buff.alwaysTriggerSwitchBonus) return '🌀'
+  if (buff.taegukMultiplier) return '☯️'
+  if (buff.perSwitch) return '🔄'
+  if (buff.perTurn) return '✨'
+  if (buff.onEvade) return '⚡'
+  if (buff.grantedStrength) return '💪'
+  if (buff.overflowBlock) return '🛡️'
+  return '✨'
+}
+
+function getBuffDescription(buff) {
+  const parts = []
+  if (buff.perTurn) {
+    if (buff.perTurn.block) parts.push(`매 턴 호신강기 +${buff.perTurn.block}`)
+    if (buff.perTurn.counter) parts.push(`매 턴 반격 +${buff.perTurn.counter}`)
+    if (buff.perTurn.taeguk) parts.push(`매 턴 태극 +${buff.perTurn.taeguk}`)
+  }
+  if (buff.perSwitch) {
+    if (buff.perSwitch.aoeDamage) parts.push(`전환 시 전체 ${buff.perSwitch.aoeDamage} 피해`)
+    if (buff.perSwitch.taeguk) parts.push(`전환 시 태극 +${buff.perSwitch.taeguk}`)
+    if (buff.perSwitch.draw) parts.push(`전환 시 카드 ${buff.perSwitch.draw}장 뽑기`)
+  }
+  if (buff.taegukMultiplier) parts.push(`태극 획득 ${buff.taegukMultiplier}배`)
+  if (buff.damageReceiveMultiplier && buff.damageReceiveMultiplier > 1) {
+    parts.push(`받는 피해 ${Math.round((buff.damageReceiveMultiplier - 1) * 100)}% 증가`)
+  }
+  if (buff.invincible) parts.push('모든 피해 흡수 (무적)')
+  if (buff.guaranteedEvade) parts.push('모든 공격 회피')
+  if (buff.onEvade) {
+    if (buff.onEvade.damage) parts.push(`회피 시 ${buff.onEvade.damage} 피해`)
+    if (buff.onEvade.taeguk) parts.push(`회피 시 태극 +${buff.onEvade.taeguk}`)
+  }
+  if (buff.alwaysTriggerSwitchBonus) parts.push('모든 전환 보너스 무조건 발동')
+  if (buff.grantedStrength) parts.push(`공력 +${buff.grantedStrength} (만료 시 해제)`)
+  if (buff.overflowBlock) parts.push(`남은 방어의 ${buff.overflowBlock.ratio * 100}% → 공력`)
+  if (buff.storedDamage > 0) parts.push(`흡수한 피해: ${buff.storedDamage} (만료 시 공력 전환)`)
+  return parts.length > 0 ? parts.join(' / ') : buff.name
+}
+
 export default function PlayerStatus({ player, energy, drawPile, discardPile, taeguk, buffs, evasionCount, counter, stance }) {
   const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100)
 
@@ -61,13 +103,15 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
         )}
       </div>
 
-      {/* 버프 - hidden on mobile */}
+      {/* 버프 */}
       {buffs.length > 0 && (
-        <div className="hidden md:flex flex-col gap-1 w-full">
+        <div className="flex flex-wrap md:flex-col gap-1 w-full justify-center">
           {buffs.map(buff => (
-            <div key={buff.buffId} className="text-[10px] text-amber-300 bg-amber-900/30 px-2 py-0.5 rounded text-center">
-              ✨ {buff.name} ({buff.duration}턴)
-            </div>
+            <Tooltip key={buff.buffId} text={getBuffDescription(buff)}>
+              <div className="text-[10px] md:text-xs text-amber-300 bg-amber-900/30 px-1.5 md:px-2 py-0.5 rounded text-center cursor-help">
+                {getBuffIcon(buff)} {buff.name} ({buff.duration}턴)
+              </div>
+            </Tooltip>
           ))}
         </div>
       )}
