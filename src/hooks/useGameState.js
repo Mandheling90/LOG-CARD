@@ -53,6 +53,7 @@ export function useGameState() {
   const [evasionChance, setEvasionChance] = useState(0)
   const [counter, setCounter] = useState(0)
   const [stance, setStance] = useState(null)
+  const [battleEffect, setBattleEffect] = useState(null)
 
   // 맵 상태
   const [mapFloors, setMapFloors] = useState([])
@@ -197,6 +198,8 @@ export function useGameState() {
       player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance,
       logs: [],
     }, targetIndex)
+
+    setBattleEffect({ type: card.type, name: card.name, id: Date.now() })
 
     setPlayer(result.player)
     setEnemies(result.enemies)
@@ -357,6 +360,8 @@ export function useGameState() {
     addLogs(allLogs)
   }, [phase, player, enemies, enemyIntents, turn, hand, drawPile, discardPile, evasionCount, evasionChance, counter, taeguk, buffs, addLogs])
 
+  const clearBattleEffect = useCallback(() => setBattleEffect(null), [])
+
   // 태극 3 소모 → 기력 +1
   const spendTaeguk = useCallback(() => {
     if (taeguk < 3) return
@@ -408,10 +413,12 @@ export function useGameState() {
     phase, player, energy, hand, drawPile, discardPile,
     enemies, enemyIntents, rewardCards, log, deck,
     selectedCardIndex, taeguk, buffs, evasionCount, counter, stance,
+    battleEffect,
     // 맵 관련
     mapFloors, currentFloor, visitedNodes, availableNodes,
     // 액션
     startGame, selectCard, selectTarget, cancelSelection, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
+    clearBattleEffect,
   }
 }

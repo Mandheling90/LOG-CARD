@@ -7,6 +7,7 @@ import RewardScreen from './components/RewardScreen'
 import RoadMap from './components/RoadMap'
 import RestScreen from './components/RestScreen'
 import EventScreen from './components/EventScreen'
+import BattleEffect from './components/BattleEffect'
 import { REWARD_POOL } from './data/cards'
 
 function App() {
@@ -17,6 +18,7 @@ function App() {
     mapFloors, currentFloor, visitedNodes, availableNodes,
     startGame, selectCard, selectTarget, cancelSelection, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
+    battleEffect, clearBattleEffect,
   } = useGameState()
 
   const isTargeting = selectedCardIndex !== null
@@ -199,6 +201,9 @@ function App() {
           </div>
         </div>
       </div>
+
+      {/* Battle Effect */}
+      <BattleEffect effect={battleEffect} onDone={clearBattleEffect} />
 
       {/* Reward Modal */}
       {phase === GAME_PHASE.REWARD && (
