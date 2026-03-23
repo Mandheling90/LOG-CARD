@@ -43,13 +43,13 @@ export default function RoadMap({ floors, currentFloor, visitedNodes, availableN
   const svgHeight = (floors.length + 1) * floorHeight
 
   return (
-    <div className="h-screen bg-gray-950 flex flex-col items-center">
-      <div className="py-4 shrink-0">
-        <h2 className="text-2xl font-bold text-amber-400 text-center">☯️ 강호 여정</h2>
-        <p className="text-gray-500 text-sm text-center mt-1">다음 행선지를 선택하시오</p>
+    <div className="h-screen bg-gray-950 flex flex-col items-center overflow-hidden">
+      <div className="py-3 md:py-4 shrink-0">
+        <h2 className="text-xl md:text-2xl font-bold text-amber-400 text-center">☯️ 강호 여정</h2>
+        <p className="text-gray-500 text-xs md:text-sm text-center mt-1">다음 행선지를 선택하시오</p>
       </div>
 
-      <div className="flex-1 w-full max-w-2xl px-4 pb-4 min-h-0">
+      <div className="flex-1 w-full max-w-2xl px-2 md:px-4 pb-4 min-h-0 overflow-y-auto">
         <svg
           viewBox={`0 0 ${totalWidth} ${svgHeight}`}
           className="w-full h-full"

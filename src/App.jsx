@@ -26,7 +26,7 @@ function App() {
     return (
       <div className="min-h-screen bg-gray-950 flex flex-col items-center justify-center gap-8">
         <div className="text-7xl">☯️</div>
-        <h1 className="text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-white to-amber-400">
+        <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-400 via-white to-amber-400">
           무당검협전
         </h1>
         <p className="text-gray-400 text-lg">강호에 드리운 마교의 그림자를 걷어라</p>
@@ -102,22 +102,22 @@ function App() {
   return (
     <div className="min-h-screen bg-gray-950 flex flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center px-6 py-3 bg-gray-900 border-b border-gray-800">
-        <div className="text-amber-400 font-bold">⛩️ {currentFloor}층</div>
-        <div className="text-gray-500 text-sm">
+      <div className="flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
+        <div className="text-amber-400 font-bold text-sm md:text-base">⛩️ {currentFloor}층</div>
+        <div className="text-gray-500 text-xs md:text-sm">
           {isTargeting ? (
-            <span className="text-red-400 font-bold animate-pulse">공격할 대상을 선택하시오</span>
+            <span className="text-red-400 font-bold animate-pulse">대상을 선택하시오</span>
           ) : (
             '무당검협전'
           )}
         </div>
-        <div className="text-gray-500 text-sm">비급: {deck.length}장</div>
+        <div className="text-gray-500 text-xs md:text-sm">비급: {deck.length}장</div>
       </div>
 
       {/* Battle Area */}
-      <div className="flex-1 flex items-center justify-center gap-6 px-6">
+      <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 px-3 md:px-6 py-2 overflow-y-auto">
         {/* Player (Left) */}
-        <div className="flex-1 flex justify-end">
+        <div className="md:flex-1 flex justify-center md:justify-end">
           <PlayerStatus
             player={player}
             energy={energy}
@@ -131,11 +131,13 @@ function App() {
           />
         </div>
 
-        {/* Battle Log (Center) */}
-        <BattleLog log={log} />
+        {/* Battle Log (Center) - hidden on mobile */}
+        <div className="hidden md:block">
+          <BattleLog log={log} />
+        </div>
 
         {/* Enemies (Right) */}
-        <div className="flex-1 flex justify-start gap-3">
+        <div className="md:flex-1 flex justify-center md:justify-start gap-2 md:gap-3">
           {enemies.map((enemy, i) => (
             <EnemyDisplay
               key={enemy.uid}
@@ -161,36 +163,40 @@ function App() {
       )}
 
       {/* Hand */}
-      <div className="bg-gray-900/90 border-t border-gray-800 px-6 py-4">
-        <div className="flex items-end justify-center gap-3">
+      <div className="bg-gray-900/90 border-t border-gray-800 px-2 md:px-6 py-2 md:py-4">
+        <div className="flex items-end justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {hand.map((card, i) => (
-            <Card
-              key={card.uid}
-              card={card}
-              onClick={() => selectCard(i)}
-              disabled={card.cost > energy}
-              selected={selectedCardIndex === i}
-            />
+            <div key={card.uid} className="shrink-0">
+              <Card
+                card={card}
+                onClick={() => selectCard(i)}
+                disabled={card.cost > energy}
+                selected={selectedCardIndex === i}
+                mobile
+              />
+            </div>
           ))}
 
-          <button
-            onClick={spendTaeguk}
-            disabled={taeguk < 3}
-            className={`ml-6 px-6 py-3 bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all ${
-              taeguk >= 3
-                ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
-                : 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            태극 → 기력
-          </button>
+          <div className="shrink-0 flex gap-2 ml-2 md:ml-6">
+            <button
+              onClick={spendTaeguk}
+              disabled={taeguk < 3}
+              className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all whitespace-nowrap ${
+                taeguk >= 3
+                  ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
+                  : 'opacity-50 cursor-not-allowed'
+              }`}
+            >
+              태극→기력
+            </button>
 
-          <button
-            onClick={endTurn}
-            className="ml-3 px-6 py-3 bg-gradient-to-b from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all hover:scale-105 cursor-pointer"
-          >
-            턴 종료
-          </button>
+            <button
+              onClick={endTurn}
+              className="px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+            >
+              턴 종료
+            </button>
+          </div>
         </div>
       </div>
 

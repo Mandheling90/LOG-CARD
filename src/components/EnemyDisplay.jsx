@@ -9,24 +9,24 @@ export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
       onClick={onClick}
       disabled={!selectable}
       className={`
-        flex flex-col items-center gap-2 rounded-xl p-4 transition-all
+        flex flex-col items-center gap-1 md:gap-2 rounded-xl p-2 md:p-4 transition-all
         ${selectable
           ? 'cursor-pointer hover:bg-red-900/30 hover:scale-105 ring-2 ring-red-500/60 ring-offset-2 ring-offset-gray-950 animate-pulse'
           : 'cursor-default'
         }
       `}
     >
-      <div className="text-5xl">{enemy.emoji}</div>
+      <div className="text-3xl md:text-5xl">{enemy.emoji}</div>
 
-      <div className="text-white font-bold text-sm">{enemy.name}</div>
+      <div className="text-white font-bold text-xs md:text-sm">{enemy.name}</div>
 
-      <div className="w-28 bg-gray-800 rounded-full h-3 border border-gray-600">
+      <div className="w-20 md:w-28 bg-gray-800 rounded-full h-2 md:h-3 border border-gray-600">
         <div
           className="bg-red-500 h-full rounded-full transition-all duration-300"
           style={{ width: `${hpPercent}%` }}
         />
       </div>
-      <div className="text-red-300 text-xs">HP: {enemy.hp}</div>
+      <div className="text-red-300 text-[10px] md:text-xs">HP: {enemy.hp}</div>
 
       {enemy.block > 0 && (
         <div className="text-blue-300 text-xs">🛡️ {enemy.block}</div>
