@@ -585,10 +585,10 @@ export function processEnemyAttack(damage, state) {
   // 태극혜검: 무적
   const immortalBuff = buffs.find((b) => b.invincible);
 
-  // 확정 회피 (유운보)
+  // 확정 회피
   if (evasionCount > 0) {
     evasionCount--;
-    logs.push(`유운보로 공격 회피!`);
+    logs.push(`공격 회피!`);
     const evadeResult = getOnEvadeEffects(buffs);
     return { player, evasionCount, evasionChance, counter, logs, buffs, dodged: true, counterDmg: 0, ...evadeResult };
   }
@@ -603,7 +603,7 @@ export function processEnemyAttack(damage, state) {
   // 확률 회피
   if (evasionChance > 0 && Math.random() * 100 < evasionChance) {
     evasionChance = 0;
-    logs.push(`태극검의 기운으로 공격 회피!`);
+    logs.push(`기운으로 공격 회피!`);
     const evadeResult = getOnEvadeEffects(buffs);
     return { player, evasionCount, evasionChance, counter, logs, buffs, dodged: true, counterDmg: 0, ...evadeResult };
   }
@@ -619,6 +619,12 @@ export function processEnemyAttack(damage, state) {
   const blocked = Math.min(player.block || 0, finalDamage);
   player.block = Math.max(0, (player.block || 0) - finalDamage);
   player.hp -= finalDamage - blocked;
+
+  if (blocked > 0 && blocked >= finalDamage) {
+    logs.push(`호신강기로 ${blocked} 피해 방어! (잔여 방어: ${player.block})`);
+  } else if (blocked > 0) {
+    logs.push(`호신강기로 ${blocked} 방어했으나 ${finalDamage - blocked} 피해 관통!`);
+  }
 
   const counterDmg = counter;
   return { player, evasionCount, evasionChance, counter, logs, buffs, dodged: false, counterDmg, onEvadeDmg: 0, onEvadeTaeguk: 0 };

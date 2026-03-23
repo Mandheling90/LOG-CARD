@@ -47,6 +47,7 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
 
   const stanceLabel = stance === 'attack' ? '⚔️ 공' : stance === 'defense' ? '🛡️ 방' : '☯️ 중'
   const stanceTip = stance === 'attack' ? '공격 자세: 다음 방어 시 전환 보너스' : stance === 'defense' ? '방어 자세: 다음 공격 시 전환 보너스' : '중립 자세'
+  const stanceColor = stance === 'attack' ? 'text-red-400' : stance === 'defense' ? 'text-blue-400' : 'text-gray-400'
 
   return (
     <>
@@ -91,7 +92,7 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
               <span className="text-cyan-400 text-base font-bold">☯ {taeguk}</span>
             </Tooltip>
             <Tooltip text={stanceTip}>
-              <span className="text-base">{stanceLabel}</span>
+              <span className={`text-base font-bold ${stanceColor}`}>{stanceLabel}</span>
             </Tooltip>
           </div>
           <div className="flex items-center gap-2">
@@ -160,7 +161,7 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
               <span className="text-cyan-400 text-sm font-bold">☯{taeguk}</span>
             </Tooltip>
             <Tooltip text={stanceTip}>
-              <span className="text-gray-400 text-xs">{stanceLabel}</span>
+              <span className={`text-xs font-bold ${stanceColor}`}>{stanceLabel}</span>
             </Tooltip>
           </div>
         </div>

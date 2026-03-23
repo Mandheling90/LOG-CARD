@@ -45,12 +45,12 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "6 피해. 【전환】 방어→공격 시 50% 회피.",
+    description: "6 피해. 【전환】 방어→공격 시 호신강기 +4.",
     effects: [{ type: "damage", value: 6, target: "single" }],
     switchBonus: {
       direction: "def_to_atk",
-      effects: [{ type: "evasionChance", value: 50 }],
-      label: "태극 흐름! → 50% 회피 준비",
+      effects: [{ type: "block", value: 3 }],
+      label: "태극 흐름! → 호신강기 +3",
     },
   },
   {
@@ -60,8 +60,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "호신강기 7. 【전환】 공격→방어 시 태극 +1.",
-    effects: [{ type: "block", value: 7 }],
+    description: "호신강기 6. 【전환】 공격→방어 시 태극 +1.",
+    effects: [{ type: "block", value: 6 }],
     switchBonus: {
       direction: "atk_to_def",
       effects: [{ type: "taeguk", value: 1 }],
@@ -74,9 +74,9 @@ export const BASE_CARDS = [
     type: CARD_TYPES.BOBEOP,
     rarity: RARITY.COMMON,
     cost: 0,
-    description: "공격 1회 회피. 카드 1장 뽑기.",
+    description: "호신강기 4. 카드 1장 뽑기.",
     effects: [
-      { type: "evasionCount", value: 1 },
+      { type: "block", value: 4 },
       { type: "draw", value: 1 },
     ],
   },
@@ -110,8 +110,8 @@ export const BASE_CARDS = [
     effects: [{ type: "counter", value: 8 }],
     switchBonus: {
       direction: "atk_to_def",
-      effects: [{ type: "block", value: 4 }],
-      label: "공수전환! → 호신강기 +4",
+      effects: [{ type: "block", value: 3 }],
+      label: "공수전환! → 호신강기 +3",
     },
   },
   {
@@ -125,7 +125,7 @@ export const BASE_CARDS = [
     effects: [
       {
         type: "stanceSwitch",
-        attackEffect: { type: "block", value: 12 },
+        attackEffect: { type: "block", value: 10 },
         defenseEffect: { type: "aoe", value: 10 },
       },
     ],
@@ -137,9 +137,9 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "호신강기 6. 적 방어 절반 제거. 【전환】 추가 피해 6.",
+    description: "호신강기 5. 적 방어 절반 제거. 【전환】 추가 피해 6.",
     effects: [
-      { type: "block", value: 6 },
+      { type: "block", value: 5 },
       { type: "enemyBlockBreak", ratio: 0.5 },
     ],
     switchBonus: {
@@ -155,9 +155,9 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "호신강기 10. 태극 3 이상이면 16.",
+    description: "호신강기 8. 태극 3 이상이면 13.",
     effects: [
-      { type: "block", value: 10, taegukBonus: { threshold: 3, value: 16 } },
+      { type: "block", value: 8, taegukBonus: { threshold: 3, value: 13 } },
     ],
   },
   {
@@ -205,16 +205,11 @@ export const BASE_CARDS = [
     type: CARD_TYPES.BOBEOP,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "카드 1장 뽑기. 이번 턴 회피 시 10 피해.",
+    description: "카드 1장 뽑기. 호신강기 4. 반격 5.",
     effects: [
       { type: "draw", value: 1 },
-      {
-        type: "buff",
-        buffId: "cloud_counter",
-        name: "유운반격",
-        duration: 1,
-        onEvade: { damage: 10 },
-      },
+      { type: "block", value: 4 },
+      { type: "counter", value: 5 },
     ],
   },
   // ===== 고급 카드 =====
@@ -261,20 +256,20 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 3,
-    description: "3턴 호신강기+8, 자동반격 5. 【전환】 시 즉시 호신강기 +6.",
+    description: "3턴 호신강기+6, 자동반격 5. 【전환】 시 즉시 호신강기 +5.",
     effects: [
       {
         type: "buff",
         buffId: "taichi_field",
         name: "태극진",
         duration: 3,
-        perTurn: { block: 8, counter: 5 },
+        perTurn: { block: 6, counter: 5 },
       },
     ],
     switchBonus: {
       direction: "any",
-      effects: [{ type: "block", value: 6 }],
-      label: "진법 공명! → 호신강기 +6",
+      effects: [{ type: "block", value: 5 }],
+      label: "진법 공명! → 호신강기 +5",
     },
   },
   {
@@ -325,9 +320,9 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "호신강기 12. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
+    description: "호신강기 10. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
     effects: [
-      { type: "block", value: 12 },
+      { type: "block", value: 10 },
       {
         type: "buff",
         buffId: "flow_guard",
@@ -362,15 +357,15 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "5×2 피해. 사용 후 자세 전환. 【전환】 호신강기 6.",
+    description: "5×2 피해. 사용 후 자세 전환. 【전환】 호신강기 5.",
     effects: [
       { type: "multiHit", value: 5, hits: 2 },
       { type: "forceSwitch" },
     ],
     switchBonus: {
       direction: "any",
-      effects: [{ type: "block", value: 6 }],
-      label: "흐름 완성! → 호신강기 +6",
+      effects: [{ type: "block", value: 5 }],
+      label: "흐름 완성! → 호신강기 +5",
     },
   },
   // ===== 전설 카드 =====
@@ -525,15 +520,14 @@ export const BASE_CARDS = [
     type: CARD_TYPES.BOBEOP,
     rarity: RARITY.LEGENDARY,
     cost: 2,
-    description: "2턴간 모든 공격 회피. 회피 시마다 8 피해 + 태극 +1.",
+    description: "2턴간 매 턴 호신강기 +10, 반격 8, 태극 +1.",
     effects: [
       {
         type: "buff",
         buffId: "formless",
         name: "무형무상",
         duration: 2,
-        guaranteedEvade: true,
-        onEvade: { damage: 8, taeguk: 1 },
+        perTurn: { block: 10, counter: 8, taeguk: 1 },
       },
     ],
   },
