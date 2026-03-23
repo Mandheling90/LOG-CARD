@@ -1,14 +1,14 @@
 export const CARD_TYPES = {
-  CHOSIK: "chosik",   // 초식 (무공 기술 - 공격/방어)
+  CHOSIK: "chosik", // 초식 (무공 기술 - 공격/방어)
   SIMBEOP: "simbeop", // 심법 (내공/버프)
-  BOBEOP: "bobeop",   // 보법 (신법/이동/유틸)
+  BOBEOP: "bobeop", // 보법 (신법/이동/유틸)
 };
 
 // 초식 내 공/수 구분
 export const CARD_NATURE = {
-  ATTACK: "attack",   // 공(攻) - 공격 초식
-  DEFENSE: "defense",  // 수(守) - 방어 초식
-  DUAL: "dual",       // 공수(攻守) - 공수 겸용
+  ATTACK: "attack", // 공(攻) - 공격 초식
+  DEFENSE: "defense", // 수(守) - 방어 초식
+  DUAL: "dual", // 공수(攻守) - 공수 겸용
 };
 
 export const RARITY = {
@@ -132,6 +132,36 @@ export const BASE_CARDS = [
     ],
   },
   {
+    id: "taeguk_break_balance",
+    name: "태극파진",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DUAL,
+    rarity: RARITY.UNCOMMON,
+    cost: 1,
+    description: "호신강기 6. 적 방어 절반 제거. 【전환】 추가 피해 6.",
+    effects: [
+      { type: "block", value: 6 },
+      { type: "enemyBlockBreak", ratio: 0.5 },
+    ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "aoeDamage", value: 6 }],
+      label: "균형 붕괴! → 추가 피해",
+    },
+  },
+  {
+    id: "taeguk_wall",
+    name: "태극강벽",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
+    rarity: RARITY.UNCOMMON,
+    cost: 1,
+    description: "호신강기 10. 태극 3 이상이면 16.",
+    effects: [
+      { type: "block", value: 10, taegukBonus: { threshold: 3, value: 16 } },
+    ],
+  },
+  {
     id: "qi_explosion",
     name: "진기폭발",
     type: CARD_TYPES.CHOSIK,
@@ -168,9 +198,7 @@ export const BASE_CARDS = [
     rarity: RARITY.UNCOMMON,
     cost: 2,
     description: "현재 호신강기의 50%를 적 전체에 피해.",
-    effects: [
-      { type: "blockToDamage", ratio: 0.5 },
-    ],
+    effects: [{ type: "blockToDamage", ratio: 0.5 }],
   },
   {
     id: "cloud_counter",
@@ -181,7 +209,13 @@ export const BASE_CARDS = [
     description: "카드 1장 뽑기. 이번 턴 회피 시 10 피해.",
     effects: [
       { type: "draw", value: 1 },
-      { type: "buff", buffId: "cloud_counter", name: "유운반격", duration: 1, onEvade: { damage: 10 } },
+      {
+        type: "buff",
+        buffId: "cloud_counter",
+        name: "유운반격",
+        duration: 1,
+        onEvade: { damage: 10 },
+      },
     ],
   },
   // ===== 고급 카드 =====
@@ -195,20 +229,23 @@ export const BASE_CARDS = [
     description: "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해.",
     effects: [
       { type: "forceSwitch" },
-      { type: "buff", buffId: "yin_yang_chain", name: "음양연환", duration: 3, perSwitch: { aoeDamage: 6 } },
+      {
+        type: "buff",
+        buffId: "yin_yang_chain",
+        name: "음양연환",
+        duration: 3,
+        perSwitch: { aoeDamage: 6 },
+      },
     ],
   },
   {
-    id: "reverse_qi",
-    name: "천지동수",
+    id: "igiunsin",
+    name: "이기운신",
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 0,
-    description: "태극 전부 소모, 소모량만큼 카드 뽑기. 자해 10.",
-    effects: [
-      { type: "consumeTaegukDraw", ratio: 1 },
-      { type: "selfDamage", value: 10 },
-    ],
+    description: "태극 전부 소모, 소모량만큼 카드 뽑기.",
+    effects: [{ type: "consumeTaegukDraw", ratio: 1 }],
   },
   {
     id: "taeguk_insight",
@@ -217,9 +254,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description: "3턴간 공력 +(태극÷2). 태극 유지.",
-    effects: [
-      { type: "taegukStrength", duration: 3 },
-    ],
+    effects: [{ type: "taegukStrength", duration: 3 }],
   },
   {
     id: "taichi_field",
@@ -284,6 +319,61 @@ export const BASE_CARDS = [
       label: "검기 응축! → 태극 3 이상 시 2배!",
     },
   },
+  {
+    id: "taeguk_flow_guard",
+    name: "태극유전",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
+    rarity: RARITY.RARE,
+    cost: 2,
+    description: "호신강기 12. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
+    effects: [
+      { type: "block", value: 12 },
+      {
+        type: "buff",
+        buffId: "flow_guard",
+        name: "태극유전",
+        duration: 1,
+        overflowBlock: { ratio: 0.5 },
+      },
+    ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "taeguk", value: 2 }],
+      label: "유전 순환! → 태극 +2",
+    },
+  },
+  {
+    id: "taeguk_counter_flow",
+    name: "태극연환수",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
+    rarity: RARITY.RARE,
+    cost: 2,
+    description: "반격 6. 이번 턴 전환 시마다 반격 +4.",
+    effects: [
+      { type: "counter", value: 6 },
+      { type: "counterPerSwitch", value: 4 },
+    ],
+  },
+  {
+    id: "taeguk_dance",
+    name: "태극난무",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DUAL,
+    rarity: RARITY.RARE,
+    cost: 2,
+    description: "6×2 피해. 사용 후 자세 전환. 【전환】 호신강기 8.",
+    effects: [
+      { type: "multiHit", value: 6, hits: 2 },
+      { type: "forceSwitch" },
+    ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "block", value: 8 }],
+      label: "흐름 완성! → 호신강기 +8",
+    },
+  },
   // ===== 전설 카드 =====
   {
     id: "tiger_claw_break",
@@ -303,35 +393,35 @@ export const BASE_CARDS = [
       label: "맹수의 틈 포착! → 적 방어 제거",
     },
   },
+  // {
+  //   id: "tiger_claw_seal",
+  //   name: "호조절호수 - 절맥",
+  //   type: CARD_TYPES.CHOSIK,
+  //   nature: CARD_NATURE.ATTACK,
+  //   rarity: RARITY.LEGENDARY,
+  //   cost: 2,
+  //   description: "8 피해. 명중 시 기맥차단 부여 (다음 행동 불가).",
+  //   effects: [
+  //     { type: "damage", value: 8 },
+  //     { type: "applyDebuff", debuff: "stun", label: "기맥차단" },
+  //   ],
+  // },
+  // {
+  //   id: "tiger_claw_combo",
+  //   name: "호조절호수 - 연참",
+  //   type: CARD_TYPES.CHOSIK,
+  //   nature: CARD_NATURE.ATTACK,
+  //   rarity: RARITY.LEGENDARY,
+  //   cost: 1,
+  //   description: "3×2 피해. 이번 턴 전환 횟수만큼 추가 타격.",
+  //   effects: [
+  //     { type: "multiHit", value: 3, hits: 2 },
+  //     { type: "extraHitsPerSwitch" },
+  //   ],
+  // },
   {
-    id: "tiger_claw_seal",
-    name: "호조절호수 - 절맥",
-    type: CARD_TYPES.CHOSIK,
-    nature: CARD_NATURE.ATTACK,
-    rarity: RARITY.LEGENDARY,
-    cost: 2,
-    description: "8 피해. 명중 시 기맥차단 부여 (다음 행동 불가).",
-    effects: [
-      { type: "damage", value: 8 },
-      { type: "applyDebuff", debuff: "stun", label: "기맥차단" },
-    ],
-  },
-  {
-    id: "tiger_claw_combo",
-    name: "호조절호수 - 연참",
-    type: CARD_TYPES.CHOSIK,
-    nature: CARD_NATURE.ATTACK,
-    rarity: RARITY.LEGENDARY,
-    cost: 1,
-    description: "3×2 피해. 이번 턴 전환 횟수만큼 추가 타격.",
-    effects: [
-      { type: "multiHit", value: 3, hits: 2 },
-      { type: "extraHitsPerSwitch" },
-    ],
-  },
-  {
-    id: "tiger_claw_blood",
-    name: "호조절호수 - 혈투",
+    id: "cheonji_dongsu",
+    name: "천지동수",
     type: CARD_TYPES.CHOSIK,
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.LEGENDARY,
@@ -341,6 +431,110 @@ export const BASE_CARDS = [
       { type: "selfHpCostPercent", value: 10 },
       { type: "damage", value: 20 },
       { type: "onKillTaeguk", value: 3 },
+    ],
+  },
+  {
+    id: "taeguk_wuji",
+    name: "태극무극",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.LEGENDARY,
+    cost: 3,
+    description:
+      "태극 5 소모 후 '무극 상태' 돌입 (3턴). 무극 상태: 전환 시 카드 1장 뽑고 태극 +2.",
+    effects: [
+      { type: "consumeTaegukCost", value: 5 },
+      {
+        type: "buff",
+        buffId: "wuji_state",
+        name: "무극 상태",
+        duration: 3,
+        perSwitch: { draw: 1, taeguk: 2 },
+      },
+    ],
+  },
+  {
+    id: "jinmu_sword",
+    name: "진무검결",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
+    rarity: RARITY.LEGENDARY,
+    cost: 2,
+    description:
+      "15 피해. 태극 수치만큼 추가 타격. 【전환】 시 전체 공격으로 변경.",
+    effects: [
+      { type: "damage", value: 15 },
+      { type: "extraHitsFromTaeguk", ratio: 1 },
+    ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "convertToAOE" }],
+      label: "검기 폭주! → 전체 공격",
+    },
+  },
+  {
+    id: "taeheo_reset",
+    name: "태허귀원",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.LEGENDARY,
+    cost: 3,
+    description: "체력 30% 회복. 모든 디버프 제거. 태극 수치만큼 카드 뽑기.",
+    effects: [
+      { type: "healPercent", value: 30 },
+      { type: "cleanseAll" },
+      { type: "drawFromTaeguk" },
+    ],
+  },
+  {
+    id: "yangil_singong",
+    name: "양일신공",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.LEGENDARY,
+    cost: 2,
+    description: "3턴 동안 모든 카드의 전환 보너스가 무조건 발동.",
+    effects: [
+      {
+        type: "buff",
+        buffId: "unity",
+        name: "양일신공",
+        duration: 3,
+        alwaysTriggerSwitchBonus: true,
+      },
+    ],
+  },
+  {
+    id: "taeguk_hyegeom",
+    name: "태극혜검",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.LEGENDARY,
+    cost: 3,
+    description: "이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가.",
+    effects: [
+      {
+        type: "buff",
+        buffId: "immortal",
+        name: "태극혜검",
+        duration: 1,
+        invincible: true,
+        storedDamage: 0,
+      },
+    ],
+  },
+  {
+    id: "formless",
+    name: "무형무상",
+    type: CARD_TYPES.BOBEOP,
+    rarity: RARITY.LEGENDARY,
+    cost: 2,
+    description: "2턴간 모든 공격 회피. 회피 시마다 8 피해 + 태극 +1.",
+    effects: [
+      {
+        type: "buff",
+        buffId: "formless",
+        name: "무형무상",
+        duration: 2,
+        guaranteedEvade: true,
+        onEvade: { damage: 8, taeguk: 1 },
+      },
     ],
   },
 ];

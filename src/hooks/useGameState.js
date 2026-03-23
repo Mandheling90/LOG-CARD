@@ -270,6 +270,8 @@ export function useGameState() {
     let currentEvasionCount = evasionCount
     let currentEvasionChance = evasionChance
     let currentCounter = counter
+    let currentBuffs = buffs
+    let currentTaeguk = taeguk
     let allLogs = []
 
     currentEnemies.forEach((enemy, i) => {
@@ -295,16 +297,17 @@ export function useGameState() {
           evasionChance: currentEvasionChance,
           counter: currentCounter,
           logs: [],
-          buffs,
+          buffs: currentBuffs,
         })
 
         currentPlayer = result.player
         currentEvasionCount = result.evasionCount
         currentEvasionChance = result.evasionChance
+        currentBuffs = result.buffs
         allLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`)
         allLogs.push(...result.logs)
 
-        // 회피 시 유운반격 등 onEvade 피해
+        // 회피 시 onEvade 피해 + 태극
         if (result.dodged && result.onEvadeDmg > 0) {
           const blocked = Math.min(currentEnemies[i].block || 0, result.onEvadeDmg)
           currentEnemies[i] = {
@@ -312,7 +315,11 @@ export function useGameState() {
             block: Math.max(0, (currentEnemies[i].block || 0) - result.onEvadeDmg),
             hp: currentEnemies[i].hp - (result.onEvadeDmg - blocked),
           }
-          allLogs.push(`유운반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`)
+          allLogs.push(`반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`)
+        }
+        if (result.dodged && result.onEvadeTaeguk > 0) {
+          currentTaeguk = (currentTaeguk || 0) + result.onEvadeTaeguk
+          allLogs.push(`회피 보너스! → 태극 +${result.onEvadeTaeguk}`)
         }
 
         if (!result.dodged && result.counterDmg > 0) {
@@ -330,6 +337,17 @@ export function useGameState() {
       }
     })
 
+    // 태극유전: 남은 방어를 다음 턴 공력으로 변환
+    const overflowBuff = currentBuffs.find(b => b.overflowBlock)
+    if (overflowBuff && currentPlayer.block > 0) {
+      const bonus = Math.floor(currentPlayer.block * overflowBuff.overflowBlock.ratio)
+      if (bonus > 0) {
+        currentPlayer = { ...currentPlayer, strength: (currentPlayer.strength || 0) + bonus }
+        allLogs.push(`${overflowBuff.name} → 남은 방어 ${currentPlayer.block}의 ${overflowBuff.overflowBlock.ratio * 100}% → 공력 +${bonus}`)
+        // 1턴 후 회수를 위해 grantedStrength 설정
+        overflowBuff.grantedStrength = (overflowBuff.grantedStrength || 0) + bonus
+      }
+    }
     currentPlayer = { ...currentPlayer, block: 0 }
     currentEvasionCount = 0
     currentEvasionChance = 0
@@ -352,8 +370,6 @@ export function useGameState() {
 
     const newTurn = turn + 1
 
-    let currentTaeguk = taeguk
-    let currentBuffs = buffs
     const buffResult = applyBuffsOnTurnStart({
       player: currentPlayer,
       taeguk: currentTaeguk,
