@@ -361,6 +361,11 @@ export function useGameState() {
     setDrawPile(newDrawPile)
     setDiscardPile(newDiscardPile)
     setEnemyIntents(currentEnemies.map(e => e.hp > 0 ? getEnemyIntent(e, newTurn) : null))
+    const MAX_TAEGUK_CARRY = 3
+    if (currentTaeguk > MAX_TAEGUK_CARRY) {
+      allLogs.push(`태극 흩어짐: ${currentTaeguk} → ${MAX_TAEGUK_CARRY}`)
+      currentTaeguk = MAX_TAEGUK_CARRY
+    }
     setTaeguk(currentTaeguk)
     setBuffs(currentBuffs)
     setEvasionCount(currentEvasionCount)
