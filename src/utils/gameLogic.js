@@ -450,7 +450,7 @@ export function processCardEffects(card, state, targetIndex) {
       }
 
       case "taegukStrength": {
-        const bonus = Math.floor(taeguk / 2);
+        const bonus = taeguk;
         if (bonus <= 0) {
           logs.push(`${card.name} → 태극이 부족하여 효과 미미`);
           break;

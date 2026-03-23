@@ -61,8 +61,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "호신강기 5. 【전환】 공격→방어 시 태극 +1.",
-    effects: [{ type: "block", value: 5 }],
+    description: "호신강기 7. 【전환】 공격→방어 시 태극 +1.",
+    effects: [{ type: "block", value: 7 }],
     switchBonus: {
       direction: "atk_to_def",
       effects: [{ type: "taeguk", value: 1 }],
@@ -106,7 +106,7 @@ export const BASE_CARDS = [
     type: CARD_TYPES.CHOSIK,
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
-    cost: 2,
+    cost: 1,
     description: "피격 시 8 반사. 【전환】 공격→방어 시 호신강기 +4.",
     effects: [{ type: "counter", value: 8 }],
     switchBonus: {
@@ -253,7 +253,7 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "3턴간 공력 +(태극÷2). 태극 유지.",
+    description: "3턴간 공력 +태극. 태극 유지.",
     effects: [{ type: "taegukStrength", duration: 3 }],
   },
   {
@@ -309,14 +309,14 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "전체 12 피해. 태극5↑ 2배. 【전환】 방어→공격 시 태극 조건 3으로 완화.",
+      "전체 12 피해. 태극3↑ 2배. 【전환】 방어→공격 시 태극 조건 2으로 완화.",
     effects: [
-      { type: "aoe", value: 12, taegukThreshold: 5, bonusMultiplier: 2 },
+      { type: "aoe", value: 12, taegukThreshold: 3, bonusMultiplier: 2 },
     ],
     switchBonus: {
       direction: "def_to_atk",
-      effects: [{ type: "aoeThresholdReduce", newThreshold: 3 }],
-      label: "검기 응축! → 태극 3 이상 시 2배!",
+      effects: [{ type: "aoeThresholdReduce", newThreshold: 2 }],
+      label: "검기 응축! → 태극 2 이상 시 2배!",
     },
   },
   {
@@ -363,15 +363,15 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "6×2 피해. 사용 후 자세 전환. 【전환】 호신강기 8.",
+    description: "5×2 피해. 사용 후 자세 전환. 【전환】 호신강기 6.",
     effects: [
-      { type: "multiHit", value: 6, hits: 2 },
+      { type: "multiHit", value: 5, hits: 2 },
       { type: "forceSwitch" },
     ],
     switchBonus: {
       direction: "any",
-      effects: [{ type: "block", value: 8 }],
-      label: "흐름 완성! → 호신강기 +8",
+      effects: [{ type: "block", value: 6 }],
+      label: "흐름 완성! → 호신강기 +6",
     },
   },
   // ===== 전설 카드 =====
@@ -440,9 +440,9 @@ export const BASE_CARDS = [
     rarity: RARITY.LEGENDARY,
     cost: 3,
     description:
-      "태극 5 소모 후 '무극 상태' 돌입 (3턴). 무극 상태: 전환 시 카드 1장 뽑고 태극 +2.",
+      "태극 3 소모 후 '무극 상태' 돌입 (3턴). 무극 상태: 전환 시 카드 1장 뽑고 태극 +2.",
     effects: [
-      { type: "consumeTaegukCost", value: 5 },
+      { type: "consumeTaegukCost", value: 3 },
       {
         type: "buff",
         buffId: "wuji_state",
@@ -460,10 +460,10 @@ export const BASE_CARDS = [
     rarity: RARITY.LEGENDARY,
     cost: 2,
     description:
-      "15 피해. 태극 수치만큼 추가 타격. 【전환】 시 전체 공격으로 변경.",
+      "15 피해. 태극÷2만큼 추가 타격. 【전환】 시 전체 공격으로 변경.",
     effects: [
       { type: "damage", value: 15 },
-      { type: "extraHitsFromTaeguk", ratio: 1 },
+      { type: "extraHitsFromTaeguk", ratio: 0.5 },
     ],
     switchBonus: {
       direction: "any",
@@ -504,7 +504,8 @@ export const BASE_CARDS = [
   {
     id: "taeguk_hyegeom",
     name: "태극혜검",
-    type: CARD_TYPES.SIMBEOP,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.LEGENDARY,
     cost: 3,
     description: "이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가.",

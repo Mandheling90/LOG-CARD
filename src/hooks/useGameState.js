@@ -11,7 +11,7 @@ import {
   applyBuffsOnTurnStart,
 } from '../utils/gameLogic'
 
-const INITIAL_HP = 70
+const INITIAL_HP = 80
 const MAX_ENERGY = 3
 const HAND_SIZE = 5
 const IS_DEBUG = import.meta.env.VITE_DEBUG_MODE === 'true'
@@ -133,7 +133,8 @@ export function useGameState() {
         if (node.type === NODE_TYPES.ELITE) {
           newEnemies.forEach(e => { e.hp = Math.floor(e.hp * 1.5) })
         } else if (node.type === NODE_TYPES.BOSS) {
-          newEnemies.forEach(e => { e.hp = Math.floor(e.hp * 2) })
+          const bossMult = floor <= 5 ? 1.5 : 2
+          newEnemies.forEach(e => { e.hp = Math.floor(e.hp * bossMult) })
         }
 
         const allCards = [...deck]
