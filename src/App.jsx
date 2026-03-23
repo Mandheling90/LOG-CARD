@@ -100,9 +100,9 @@ function App() {
 
   // 전투 화면
   return (
-    <div className="min-h-screen bg-gray-950 flex flex-col">
+    <div className="h-[100dvh] bg-gray-950 flex flex-col overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
+      <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
         <div className="text-amber-400 font-bold text-sm md:text-base">⛩️ {currentFloor}층</div>
         <div className="text-gray-500 text-xs md:text-sm">
           {isTargeting ? (
@@ -115,7 +115,7 @@ function App() {
       </div>
 
       {/* Battle Area */}
-      <div className="flex-1 flex flex-col md:flex-row items-center justify-center gap-3 md:gap-6 px-3 md:px-6 py-2 overflow-y-auto">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 px-3 md:px-6 py-1 md:py-2 overflow-y-auto">
         {/* Player (Left) */}
         <div className="md:flex-1 flex justify-center md:justify-end">
           <PlayerStatus
@@ -152,7 +152,7 @@ function App() {
 
       {/* Targeting cancel */}
       {isTargeting && (
-        <div className="text-center py-2">
+        <div className="shrink-0 text-center py-1 md:py-2">
           <button
             onClick={cancelSelection}
             className="px-4 py-1 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition cursor-pointer"
@@ -163,7 +163,7 @@ function App() {
       )}
 
       {/* Hand */}
-      <div className="bg-gray-900/90 border-t border-gray-800 px-2 md:px-6 py-2 md:py-4">
+      <div className="shrink-0 bg-gray-900/90 border-t border-gray-800 px-2 md:px-6 py-2 md:py-4">
         <div className="flex items-end justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide">
           {hand.map((card, i) => (
             <div key={card.uid} className="shrink-0">
