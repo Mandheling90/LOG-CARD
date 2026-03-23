@@ -8,6 +8,7 @@ import RoadMap from './components/RoadMap'
 import RestScreen from './components/RestScreen'
 import EventScreen from './components/EventScreen'
 import BattleEffect from './components/BattleEffect'
+import Tooltip from './components/Tooltip'
 import { REWARD_POOL } from './data/cards'
 
 function App() {
@@ -105,7 +106,9 @@ function App() {
     <div className="h-[100dvh] bg-gray-950 flex flex-col overflow-hidden">
       {/* Header */}
       <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
-        <div className="text-amber-400 font-bold text-sm md:text-base">⛩️ {currentFloor}층</div>
+        <Tooltip text="현재 층수: 10층이 최종 보스">
+          <div className="text-amber-400 font-bold text-sm md:text-base">⛩️ {currentFloor}층</div>
+        </Tooltip>
         <div className="text-gray-500 text-xs md:text-sm">
           {isTargeting ? (
             <span className="text-red-400 font-bold animate-pulse">대상을 선택하시오</span>
@@ -113,7 +116,9 @@ function App() {
             '무당검협전'
           )}
         </div>
-        <div className="text-gray-500 text-xs md:text-sm">비급: {deck.length}장</div>
+        <Tooltip text="보유 중인 전체 카드 수">
+          <div className="text-gray-500 text-xs md:text-sm">비급: {deck.length}장</div>
+        </Tooltip>
       </div>
 
       {/* Battle Area */}
@@ -180,24 +185,28 @@ function App() {
           ))}
 
           <div className="shrink-0 flex gap-2 ml-2 md:ml-6">
-            <button
-              onClick={spendTaeguk}
-              disabled={taeguk < 3}
-              className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all whitespace-nowrap ${
-                taeguk >= 3
-                  ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
-                  : 'opacity-50 cursor-not-allowed'
-              }`}
-            >
-              태극→기력
-            </button>
+            <Tooltip text="태극 3 소모하여 기력 +1 획득">
+              <button
+                onClick={spendTaeguk}
+                disabled={taeguk < 3}
+                className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all whitespace-nowrap ${
+                  taeguk >= 3
+                    ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
+                    : 'opacity-50 cursor-not-allowed'
+                }`}
+              >
+                태극→기력
+              </button>
+            </Tooltip>
 
-            <button
-              onClick={endTurn}
-              className="px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
-            >
-              턴 종료
-            </button>
+            <Tooltip text="턴을 넘기면 적이 행동합니다">
+              <button
+                onClick={endTurn}
+                className="px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 hover:from-gray-600 hover:to-gray-800 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all hover:scale-105 cursor-pointer whitespace-nowrap"
+              >
+                턴 종료
+              </button>
+            </Tooltip>
           </div>
         </div>
       </div>

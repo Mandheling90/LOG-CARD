@@ -1,8 +1,16 @@
+import Tooltip from './Tooltip'
+
 export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
   if (!enemy || enemy.hp <= 0) return null
 
   const maxHp = enemy.hp + 50
   const hpPercent = Math.max(0, (enemy.hp / maxHp) * 100)
+
+  const intentTip = intent
+    ? intent.type === 'attack'
+      ? `다음 턴에 ${intent.damage} 피해를 줍니다`
+      : `다음 턴에 방어력 ${intent.block}을 얻습니다`
+    : ''
 
   return (
     <button
@@ -20,29 +28,37 @@ export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
 
       <div className="text-white font-bold text-xs md:text-sm">{enemy.name}</div>
 
-      <div className="w-20 md:w-28 bg-gray-800 rounded-full h-2 md:h-3 border border-gray-600">
-        <div
-          className="bg-red-500 h-full rounded-full transition-all duration-300"
-          style={{ width: `${hpPercent}%` }}
-        />
-      </div>
-      <div className="text-red-300 text-[10px] md:text-xs">HP: {enemy.hp}</div>
+      <Tooltip text={`적 체력: ${enemy.hp}`}>
+        <div className="flex flex-col items-center gap-0.5">
+          <div className="w-20 md:w-28 bg-gray-800 rounded-full h-2 md:h-3 border border-gray-600">
+            <div
+              className="bg-red-500 h-full rounded-full transition-all duration-300"
+              style={{ width: `${hpPercent}%` }}
+            />
+          </div>
+          <div className="text-red-300 text-[10px] md:text-xs">HP: {enemy.hp}</div>
+        </div>
+      </Tooltip>
 
       {enemy.block > 0 && (
-        <div className="text-blue-300 text-xs">🛡️ {enemy.block}</div>
+        <Tooltip text="적 방어: 피해를 먼저 흡수">
+          <div className="text-blue-300 text-[10px] md:text-xs">🛡️ {enemy.block}</div>
+        </Tooltip>
       )}
 
       {intent && (
-        <div className={`mt-1 px-2 py-0.5 rounded text-xs font-medium ${
-          intent.type === 'attack'
-            ? 'bg-red-900/60 text-red-300 border border-red-700'
-            : 'bg-blue-900/60 text-blue-300 border border-blue-700'
-        }`}>
-          {intent.type === 'attack'
-            ? `⚔️ ${intent.damage}`
-            : `🛡️ ${intent.block}`
-          }
-        </div>
+        <Tooltip text={intentTip}>
+          <div className={`mt-0.5 px-2 py-0.5 rounded text-[10px] md:text-xs font-medium ${
+            intent.type === 'attack'
+              ? 'bg-red-900/60 text-red-300 border border-red-700'
+              : 'bg-blue-900/60 text-blue-300 border border-blue-700'
+          }`}>
+            {intent.type === 'attack'
+              ? `⚔️ ${intent.damage}`
+              : `🛡️ ${intent.block}`
+            }
+          </div>
+        </Tooltip>
       )}
 
       {selectable && (

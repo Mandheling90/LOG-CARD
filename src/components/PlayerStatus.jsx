@@ -1,11 +1,14 @@
+import Tooltip from './Tooltip'
+
 export default function PlayerStatus({ player, energy, drawPile, discardPile, taeguk, buffs, evasionCount, counter, stance }) {
   const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100)
 
   const stanceLabel = stance === 'attack' ? '⚔️ 공' : stance === 'defense' ? '🛡️ 방' : '☯️ 중'
+  const stanceTip = stance === 'attack' ? '공격 자세: 다음 방어 시 전환 보너스' : stance === 'defense' ? '방어 자세: 다음 공격 시 전환 보너스' : '중립 자세'
 
   return (
     <div className="flex flex-row md:flex-col items-center gap-2 md:gap-3 bg-gray-800/80 rounded-xl px-2 py-1.5 md:px-6 md:py-5 border border-gray-700">
-      {/* 아이콘 + 이름 + HP를 모바일에서 세로 묶음 */}
+      {/* 아이콘 + 이름 */}
       <div className="flex flex-col items-center gap-0.5 md:gap-2">
         <div className="text-2xl md:text-6xl">⚔️</div>
         <div className="text-white font-bold text-[10px] md:text-lg leading-tight">협객</div>
@@ -13,32 +16,48 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
 
       {/* HP + 태극 + 자세 */}
       <div className="flex flex-col items-center gap-0.5 md:gap-3">
-        <div className="w-20 md:w-40 bg-gray-900 rounded-full h-2 md:h-4 border border-gray-600">
-          <div
-            className="bg-green-500 h-full rounded-full transition-all duration-300"
-            style={{ width: `${hpPercent}%` }}
-          />
-        </div>
-        <div className="text-green-300 text-[10px] md:text-sm">{player.hp}/{player.maxHp}</div>
+        <Tooltip text="체력: 0이 되면 패배">
+          <div className="flex flex-col items-center gap-0.5">
+            <div className="w-20 md:w-40 bg-gray-900 rounded-full h-2 md:h-4 border border-gray-600">
+              <div
+                className="bg-green-500 h-full rounded-full transition-all duration-300"
+                style={{ width: `${hpPercent}%` }}
+              />
+            </div>
+            <div className="text-green-300 text-[10px] md:text-sm">{player.hp}/{player.maxHp}</div>
+          </div>
+        </Tooltip>
         <div className="flex items-center gap-1">
-          <span className="text-cyan-400 text-[10px] md:text-sm font-bold">☯{taeguk}</span>
-          <span className="text-gray-400 text-[10px] md:text-xs">{stanceLabel}</span>
+          <Tooltip text="태극: 카드로 축적, 3 소모하여 기력 +1">
+            <span className="text-cyan-400 text-[10px] md:text-sm font-bold">☯{taeguk}</span>
+          </Tooltip>
+          <Tooltip text={stanceTip}>
+            <span className="text-gray-400 text-[10px] md:text-xs">{stanceLabel}</span>
+          </Tooltip>
         </div>
       </div>
 
       {/* 전투 상태 */}
       <div className="flex flex-wrap gap-0.5 md:gap-2 justify-center">
         {player.block > 0 && (
-          <span className="text-blue-300 text-[10px] md:text-xs bg-blue-900/40 px-1 md:px-1.5 py-0.5 rounded">🛡️{player.block}</span>
+          <Tooltip text="방어: 받는 피해를 먼저 흡수">
+            <span className="text-blue-300 text-[10px] md:text-xs bg-blue-900/40 px-1 md:px-1.5 py-0.5 rounded">🛡️{player.block}</span>
+          </Tooltip>
         )}
         {player.strength > 0 && (
-          <span className="text-orange-300 text-[10px] md:text-xs bg-orange-900/40 px-1 md:px-1.5 py-0.5 rounded">💪{player.strength}</span>
+          <Tooltip text="공력: 공격 시 추가 피해">
+            <span className="text-orange-300 text-[10px] md:text-xs bg-orange-900/40 px-1 md:px-1.5 py-0.5 rounded">💪{player.strength}</span>
+          </Tooltip>
         )}
         {evasionCount > 0 && (
-          <span className="text-green-300 text-[10px] md:text-xs bg-green-900/40 px-1 md:px-1.5 py-0.5 rounded">💨{evasionCount}</span>
+          <Tooltip text="회피: 다음 공격을 완전히 회피">
+            <span className="text-green-300 text-[10px] md:text-xs bg-green-900/40 px-1 md:px-1.5 py-0.5 rounded">💨{evasionCount}</span>
+          </Tooltip>
         )}
         {counter > 0 && (
-          <span className="text-red-300 text-[10px] md:text-xs bg-red-900/40 px-1 md:px-1.5 py-0.5 rounded">🔄{counter}</span>
+          <Tooltip text="반격: 피격 시 적에게 피해 반사">
+            <span className="text-red-300 text-[10px] md:text-xs bg-red-900/40 px-1 md:px-1.5 py-0.5 rounded">🔄{counter}</span>
+          </Tooltip>
         )}
       </div>
 
@@ -55,22 +74,28 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
 
       {/* 기력 + 덱 정보 */}
       <div className="flex flex-col items-center gap-0.5 md:gap-2">
-        <div className="flex items-center gap-0.5">
-          {Array.from({ length: 3 }).map((_, i) => (
-            <div
-              key={i}
-              className={`w-3 h-3 md:w-5 md:h-5 rounded-full border-2 ${
-                i < energy
-                  ? 'bg-amber-400 border-amber-300'
-                  : 'bg-gray-700 border-gray-600'
-              }`}
-            />
-          ))}
-          <span className="text-amber-300 text-[10px] md:text-sm ml-0.5">{energy}/3</span>
-        </div>
+        <Tooltip text="기력: 카드 사용에 필요한 자원">
+          <div className="flex items-center gap-0.5">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div
+                key={i}
+                className={`w-3 h-3 md:w-5 md:h-5 rounded-full border-2 ${
+                  i < energy
+                    ? 'bg-amber-400 border-amber-300'
+                    : 'bg-gray-700 border-gray-600'
+                }`}
+              />
+            ))}
+            <span className="text-amber-300 text-[10px] md:text-sm ml-0.5">{energy}/3</span>
+          </div>
+        </Tooltip>
         <div className="text-gray-400 text-[9px] md:text-xs flex gap-1.5 md:gap-3">
-          <span>📜{drawPile.length}</span>
-          <span>♻️{discardPile.length}</span>
+          <Tooltip text="뽑을 패: 남은 카드 수">
+            <span>📜{drawPile.length}</span>
+          </Tooltip>
+          <Tooltip text="버린 패: 뽑을 패 소진 시 재활용">
+            <span>♻️{discardPile.length}</span>
+          </Tooltip>
         </div>
       </div>
     </div>
