@@ -29,9 +29,16 @@ const rarityGlow = {
   rare: 'shadow-amber-400/40 shadow-lg',
 }
 
+const rarityName = {
+  common: { color: 'text-gray-300', costBg: 'bg-gray-500', costBorder: '' },
+  uncommon: { color: 'text-sky-300', costBg: 'bg-sky-400', costBorder: 'ring-1 ring-sky-300' },
+  rare: { color: 'text-amber-300', costBg: 'bg-amber-400', costBorder: 'ring-1 ring-amber-300' },
+}
+
 export default function Card({ card, onClick, disabled, small, selected, mobile }) {
   const colors = typeColors[card.type] || typeColors.chosik
   const glow = rarityGlow[card.rarity]
+  const rarity = rarityName[card.rarity] || rarityName.common
   const canPlay = !disabled
   const nature = card.nature ? natureAccent[card.nature] : null
 
@@ -60,8 +67,8 @@ export default function Card({ card, onClick, disabled, small, selected, mobile 
       )}
 
       <div className="flex justify-between items-start w-full">
-        <span className="font-bold text-white truncate text-[10px] md:text-sm pl-1">{card.name}</span>
-        <span className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-400 text-black font-bold text-[10px] md:text-xs shrink-0">
+        <span className={`font-bold truncate text-[10px] md:text-sm pl-1 ${rarity.color}`}>{card.name}</span>
+        <span className={`flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full ${rarity.costBg} ${rarity.costBorder} text-black font-bold text-[10px] md:text-xs shrink-0`}>
           {card.cost}
         </span>
       </div>
