@@ -25,14 +25,16 @@ const natureAccent = {
 
 const rarityGlow = {
   common: '',
-  uncommon: 'shadow-sky-500/30 shadow-lg',
-  rare: 'shadow-amber-400/40 shadow-lg',
+  uncommon: 'shadow-green-500/30 shadow-lg',
+  rare: 'shadow-purple-500/30 shadow-lg',
+  legendary: 'shadow-amber-400/50 shadow-xl ring-1 ring-amber-500/30',
 }
 
 const rarityName = {
   common: { color: 'text-gray-300', costBg: 'bg-gray-500', costBorder: '' },
-  uncommon: { color: 'text-sky-300', costBg: 'bg-sky-400', costBorder: 'ring-1 ring-sky-300' },
-  rare: { color: 'text-amber-300', costBg: 'bg-amber-400', costBorder: 'ring-1 ring-amber-300' },
+  uncommon: { color: 'text-green-300', costBg: 'bg-green-500', costBorder: 'ring-1 ring-green-300' },
+  rare: { color: 'text-purple-300', costBg: 'bg-purple-500', costBorder: 'ring-1 ring-purple-300' },
+  legendary: { color: 'text-amber-300', costBg: 'bg-amber-400', costBorder: 'ring-2 ring-amber-300' },
 }
 
 export default function Card({ card, onClick, disabled, small, selected, mobile }) {

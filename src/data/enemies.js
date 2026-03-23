@@ -60,7 +60,7 @@ export const ENEMIES = [
 let enemyUidCounter = 0
 
 function createEnemy(template) {
-  return { ...template, block: 0, uid: `enemy_${enemyUidCounter++}` }
+  return { ...template, block: 0, debuffs: [], uid: `enemy_${enemyUidCounter++}` }
 }
 
 export function getEnemiesForFloor(floor) {

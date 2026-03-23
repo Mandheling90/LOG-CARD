@@ -61,6 +61,17 @@ export default function EnemyDisplay({ enemy, intent, selectable, onClick }) {
         </Tooltip>
       )}
 
+      {/* 디버프 표시 */}
+      {enemy.debuffs?.length > 0 && (
+        <div className="flex gap-1">
+          {enemy.debuffs.includes('stun') && (
+            <Tooltip text="기맥차단: 다음 행동 불가">
+              <span className="text-[10px] md:text-xs bg-yellow-900/60 text-yellow-300 px-1.5 py-0.5 rounded border border-yellow-700">⚡ 차단</span>
+            </Tooltip>
+          )}
+        </div>
+      )}
+
       {selectable && (
         <div className="text-red-400 text-[10px] font-bold mt-1">대상 선택</div>
       )}

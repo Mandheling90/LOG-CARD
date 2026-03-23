@@ -15,6 +15,7 @@ export const RARITY = {
   COMMON: "common",
   UNCOMMON: "uncommon",
   RARE: "rare",
+  LEGENDARY: "legendary",
 };
 
 // 카드 대상 지정이 필요한지 판별
@@ -24,6 +25,7 @@ export function cardNeedsTarget(card) {
       (e) =>
         e.type === "damage" ||
         e.type === "finisher" ||
+        e.type === "multiHit" ||
         (e.type === "stanceSwitch" && e.defenseEffect?.type === "aoe"),
     );
   }
@@ -182,7 +184,7 @@ export const BASE_CARDS = [
       { type: "buff", buffId: "cloud_counter", name: "유운반격", duration: 1, onEvade: { damage: 10 } },
     ],
   },
-  // ===== 신규 고급 카드 =====
+  // ===== 고급 카드 =====
   {
     id: "yin_yang_chain",
     name: "음양연환",
@@ -219,7 +221,6 @@ export const BASE_CARDS = [
       { type: "taegukStrength", duration: 3 },
     ],
   },
-  // ===== 고급 카드 =====
   {
     id: "taichi_field",
     name: "태극진",
@@ -283,6 +284,65 @@ export const BASE_CARDS = [
       label: "검기 응축! → 태극 3 이상 시 2배!",
     },
   },
+  // ===== 전설 카드 =====
+  {
+    id: "tiger_claw_break",
+    name: "호조절호수",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
+    rarity: RARITY.LEGENDARY,
+    cost: 2,
+    description: "4×3 피해 + 적 방어도만큼 추가 피해. 【전환】 적 방어 제거.",
+    effects: [
+      { type: "multiHit", value: 4, hits: 3 },
+      { type: "bonusDamagePerBlock" },
+    ],
+    switchBonus: {
+      direction: "def_to_atk",
+      effects: [{ type: "blockRemove" }],
+      label: "맹수의 틈 포착! → 적 방어 제거",
+    },
+  },
+  {
+    id: "tiger_claw_seal",
+    name: "호조절호수 - 절맥",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
+    rarity: RARITY.LEGENDARY,
+    cost: 2,
+    description: "8 피해. 명중 시 기맥차단 부여 (다음 행동 불가).",
+    effects: [
+      { type: "damage", value: 8 },
+      { type: "applyDebuff", debuff: "stun", label: "기맥차단" },
+    ],
+  },
+  {
+    id: "tiger_claw_combo",
+    name: "호조절호수 - 연참",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
+    rarity: RARITY.LEGENDARY,
+    cost: 1,
+    description: "3×2 피해. 이번 턴 전환 횟수만큼 추가 타격.",
+    effects: [
+      { type: "multiHit", value: 3, hits: 2 },
+      { type: "extraHitsPerSwitch" },
+    ],
+  },
+  {
+    id: "tiger_claw_blood",
+    name: "호조절호수 - 혈투",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
+    rarity: RARITY.LEGENDARY,
+    cost: 1,
+    description: "체력 10% 소모, 20 피해. 적 처치 시 태극 +3.",
+    effects: [
+      { type: "selfHpCostPercent", value: 10 },
+      { type: "damage", value: 20 },
+      { type: "onKillTaeguk", value: 3 },
+    ],
+  },
 ];
 
 export const DEBUG_CARD = {
@@ -299,7 +359,12 @@ export const DEBUG_CARD = {
 export const STARTER_CARDS = BASE_CARDS.filter(
   (c) => c.rarity === RARITY.COMMON,
 );
-export const REWARD_POOL = BASE_CARDS.filter((c) => c.rarity !== RARITY.COMMON);
+export const REWARD_POOL = BASE_CARDS.filter(
+  (c) => c.rarity !== RARITY.COMMON && c.rarity !== RARITY.LEGENDARY,
+);
+export const LEGENDARY_POOL = BASE_CARDS.filter(
+  (c) => c.rarity === RARITY.LEGENDARY,
+);
 
 export function createStarterDeck() {
   const taichi = BASE_CARDS.find((c) => c.id === "taichi_strike");

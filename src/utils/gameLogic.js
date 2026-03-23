@@ -41,11 +41,10 @@ function dealDamage(target, amount) {
 // 카드의 기본 효과가 어떤 자세를 부여하는지 판별
 function getCardStance(card) {
   for (const e of card.effects) {
-    if (e.type === "damage" || e.type === "finisher" || e.type === "aoe")
+    if (e.type === "damage" || e.type === "finisher" || e.type === "aoe" || e.type === "multiHit")
       return "attack";
     if (e.type === "block" || e.type === "counter") return "defense";
-    if (e.type === "stanceSwitch") return "switch"; // 별도 처리
-    // forceSwitch, blockToDamage 등은 효과 처리 중 직접 stance 변경
+    if (e.type === "stanceSwitch") return "switch";
   }
   return null;
 }
@@ -53,48 +52,30 @@ function getCardStance(card) {
 // 자세 전환이 발생하는지 판별
 function isStanceSwitching(prevStance, newStance, switchBonus) {
   if (!switchBonus || !prevStance || !newStance) return false;
-  if (newStance === "switch") return false; // 음양전환은 자체 처리
+  if (newStance === "switch") return false;
 
   const dir = switchBonus.direction;
   if (dir === "any" && prevStance !== newStance) return true;
-  if (
-    dir === "def_to_atk" &&
-    prevStance === "defense" &&
-    newStance === "attack"
-  )
-    return true;
-  if (
-    dir === "atk_to_def" &&
-    prevStance === "attack" &&
-    newStance === "defense"
-  )
-    return true;
+  if (dir === "def_to_atk" && prevStance === "defense" && newStance === "attack") return true;
+  if (dir === "atk_to_def" && prevStance === "attack" && newStance === "defense") return true;
   return false;
 }
 
 // 카드 효과 처리
 export function processCardEffects(card, state, targetIndex) {
   let {
-    player,
-    enemies,
-    taeguk,
-    buffs,
-    evasionCount,
-    evasionChance,
-    counter,
-    stance,
-    logs,
+    player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance, logs,
+    switchCount = 0,
   } = { ...state };
   player = { ...player };
-  enemies = enemies.map((e) => ({ ...e }));
+  enemies = enemies.map((e) => ({ ...e, debuffs: [...(e.debuffs || [])] }));
   logs = [...logs];
 
   const taegukMult = buffs.reduce(
-    (m, b) => (b.taegukMultiplier ? m * b.taegukMultiplier : m),
-    1,
+    (m, b) => (b.taegukMultiplier ? m * b.taegukMultiplier : m), 1,
   );
 
-  // 초기 자세 기록 (perSwitch 버프 판정용)
+  // 초기 자세 기록
   const initialStance = stance;
 
   // 자세 전환 보너스 판정
@@ -102,23 +83,22 @@ export function processCardEffects(card, state, targetIndex) {
   const newStance = getCardStance(card);
   const switched = isStanceSwitching(prevStance, newStance, card.switchBonus);
 
-  // 전환 보너스 발동 시 미리 로그
   if (switched) {
     logs.push(`【${card.switchBonus.label}】`);
   }
 
-  // 진기폭발 전환 보너스: 배율 업그레이드
   let finisherMultOverride = null;
-  // 태허검기 전환 보너스: 태극 조건 완화
   let aoeThresholdOverride = null;
 
   if (switched && card.switchBonus) {
     for (const be of card.switchBonus.effects) {
       if (be.type === "finisherUpgrade") finisherMultOverride = be.multiplier;
-      if (be.type === "aoeThresholdReduce")
-        aoeThresholdOverride = be.newThreshold;
+      if (be.type === "aoeThresholdReduce") aoeThresholdOverride = be.newThreshold;
     }
   }
+
+  // multiHit 추적용
+  let lastMultiHitDmg = 0;
 
   // 기본 효과 처리
   for (const effect of card.effects) {
@@ -127,10 +107,67 @@ export function processCardEffects(card, state, targetIndex) {
         if (targetIndex === null || targetIndex === undefined) break;
         const dmg = effect.value + (player.strength || 0);
         enemies[targetIndex] = dealDamage(enemies[targetIndex], dmg);
-        logs.push(
-          `${card.name} → ${enemies[targetIndex].name}에게 ${dmg} 타격`,
-        );
+        logs.push(`${card.name} → ${enemies[targetIndex].name}에게 ${dmg} 타격`);
         stance = "attack";
+        break;
+      }
+
+      case "multiHit": {
+        if (targetIndex === null || targetIndex === undefined) break;
+        const dmg = effect.value + (player.strength || 0);
+        lastMultiHitDmg = dmg;
+        for (let h = 0; h < effect.hits; h++) {
+          enemies[targetIndex] = dealDamage(enemies[targetIndex], dmg);
+        }
+        logs.push(`${card.name} → ${enemies[targetIndex].name}에게 ${dmg}×${effect.hits} 타격`);
+        stance = "attack";
+        break;
+      }
+
+      case "bonusDamagePerBlock": {
+        if (targetIndex === null || targetIndex === undefined) break;
+        const targetBlock = enemies[targetIndex].block || 0;
+        if (targetBlock > 0 && enemies[targetIndex].hp > 0) {
+          enemies[targetIndex] = dealDamage(enemies[targetIndex], targetBlock);
+          logs.push(`호조 관통! → 방어도 ${targetBlock}만큼 추가 피해`);
+        }
+        break;
+      }
+
+      case "extraHitsPerSwitch": {
+        if (targetIndex === null || targetIndex === undefined) break;
+        if (lastMultiHitDmg <= 0) break;
+        if (switchCount > 0 && enemies[targetIndex].hp > 0) {
+          for (let h = 0; h < switchCount; h++) {
+            enemies[targetIndex] = dealDamage(enemies[targetIndex], lastMultiHitDmg);
+          }
+          logs.push(`전환 연쇄! → ${lastMultiHitDmg}×${switchCount} 추가 타격`);
+        }
+        break;
+      }
+
+      case "applyDebuff": {
+        if (targetIndex === null || targetIndex === undefined) break;
+        if (enemies[targetIndex].hp > 0) {
+          enemies[targetIndex].debuffs.push(effect.debuff);
+          logs.push(`${card.name} → ${enemies[targetIndex].name}에게 ${effect.label}!`);
+        }
+        break;
+      }
+
+      case "selfHpCostPercent": {
+        const cost = Math.max(1, Math.floor(player.hp * effect.value / 100));
+        player.hp -= cost;
+        logs.push(`${card.name} → 체력 ${cost} 소모`);
+        break;
+      }
+
+      case "onKillTaeguk": {
+        if (targetIndex === null || targetIndex === undefined) break;
+        if (enemies[targetIndex].hp <= 0) {
+          taeguk += effect.value;
+          logs.push(`처치 보너스! → 태극 +${effect.value}`);
+        }
         break;
       }
 
@@ -230,9 +267,7 @@ export function processCardEffects(card, state, targetIndex) {
         const threshold = aoeThresholdOverride || effect.taegukThreshold;
         if (threshold && taeguk >= threshold) {
           dmg *= effect.bonusMultiplier;
-          logs.push(
-            `${card.name} → 태극 충만! 위력 ${effect.bonusMultiplier}배!`,
-          );
+          logs.push(`${card.name} → 태극 충만! 위력 ${effect.bonusMultiplier}배!`);
         }
         enemies = enemies.map((e) => {
           if (e.hp <= 0) return e;
@@ -262,8 +297,6 @@ export function processCardEffects(card, state, targetIndex) {
         logs.push(`${effect.name} 발동! (${effect.duration}턴)`);
         break;
       }
-
-      // ===== 신규 효과 =====
 
       case "forceSwitch": {
         if (stance === "attack") {
@@ -298,7 +331,6 @@ export function processCardEffects(card, state, targetIndex) {
         }
         const drawAmount = Math.floor(taeguk * effect.ratio);
         logs.push(`${card.name} → 태극 ${taeguk} 소모 → ${drawAmount}장 뽑기!`);
-        // draw는 drawCount에 합산하여 처리
         effect._drawOverride = drawAmount;
         taeguk = 0;
         break;
@@ -333,7 +365,7 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
-  // 전환 보너스 효과 적용 (finisherUpgrade, aoeThresholdReduce 제외 - 위에서 처리됨)
+  // 전환 보너스 효과 적용
   if (switched && card.switchBonus) {
     for (const be of card.switchBonus.effects) {
       switch (be.type) {
@@ -354,13 +386,20 @@ export function processCardEffects(card, state, targetIndex) {
         case "counter":
           counter += be.value;
           break;
-        // finisherUpgrade, aoeThresholdReduce 는 위에서 이미 처리
+        case "blockRemove":
+          enemies = enemies.map((e) => {
+            if (e.hp <= 0 || !e.block) return e;
+            logs.push(`${e.name} 방어 제거!`);
+            return { ...e, block: 0 };
+          });
+          break;
       }
     }
   }
 
-  // 자세 전환 시 perSwitch 버프 발동 (음양연환 등)
+  // 자세 전환 감지 → switchCount 증가 + perSwitch 버프 발동
   if (initialStance !== null && stance !== initialStance) {
+    switchCount++;
     for (const buff of buffs) {
       if (buff.perSwitch?.aoeDamage) {
         const dmg = buff.perSwitch.aoeDamage;
@@ -373,7 +412,7 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
-  // 드로우 수 합산 (consumeTaegukDraw의 동적 드로우 포함)
+  // 드로우 수 합산
   let drawCount = 0;
   for (const effect of card.effects) {
     if (effect.type === "draw") drawCount += effect.value;
@@ -383,31 +422,19 @@ export function processCardEffects(card, state, targetIndex) {
   }
 
   return {
-    player,
-    enemies,
-    taeguk,
-    buffs,
-    evasionCount,
-    evasionChance,
-    counter,
-    stance,
-    logs,
-    drawCount,
+    player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance, logs,
+    drawCount, switchCount,
   };
 }
 
 // 적 공격 시 회피/반격/방어 처리
 export function processEnemyAttack(damage, state) {
-  let { player, evasionCount, evasionChance, counter, logs, buffs } = {
-    ...state,
-  };
+  let { player, evasionCount, evasionChance, counter, logs, buffs } = { ...state };
   player = { ...player };
   logs = [...logs];
 
-  // 받는 피해 증가 버프 체크
   const dmgMult = buffs.reduce(
-    (m, b) => (b.damageReceiveMultiplier ? m * b.damageReceiveMultiplier : m),
-    1,
+    (m, b) => (b.damageReceiveMultiplier ? m * b.damageReceiveMultiplier : m), 1,
   );
   const finalDamage = Math.ceil(damage * dmgMult);
 
@@ -415,7 +442,6 @@ export function processEnemyAttack(damage, state) {
   if (evasionCount > 0) {
     evasionCount--;
     logs.push(`유운보로 공격 회피!`);
-    // 회피 시 onEvade 버프 체크
     const onEvadeDmg = getOnEvadeDamage(buffs);
     return { player, evasionCount, evasionChance, counter, logs, dodged: true, counterDmg: 0, onEvadeDmg };
   }
@@ -433,21 +459,10 @@ export function processEnemyAttack(damage, state) {
   player.block = Math.max(0, (player.block || 0) - finalDamage);
   player.hp -= finalDamage - blocked;
 
-  // 반격
   const counterDmg = counter;
-  return {
-    player,
-    evasionCount,
-    evasionChance,
-    counter,
-    logs,
-    dodged: false,
-    counterDmg,
-    onEvadeDmg: 0,
-  };
+  return { player, evasionCount, evasionChance, counter, logs, dodged: false, counterDmg, onEvadeDmg: 0 };
 }
 
-// 회피 시 onEvade 버프의 피해량 반환
 function getOnEvadeDamage(buffs) {
   for (const buff of buffs) {
     if (buff.onEvade?.damage) return buff.onEvade.damage;
@@ -478,14 +493,12 @@ export function applyBuffsOnTurnStart(state) {
     }
   }
 
-  // 버프 지속시간 감소 + 만료 시 grantedStrength 회수
   const newBuffs = [];
   for (const b of buffs) {
     const remaining = b.duration - 1;
     if (remaining > 0) {
       newBuffs.push({ ...b, duration: remaining });
     } else {
-      // 만료: 태극심안 등 부여한 공력 회수
       if (b.grantedStrength) {
         player.strength = Math.max(0, (player.strength || 0) - b.grantedStrength);
         logs.push(`${b.name} 만료 → 공력 -${b.grantedStrength}`);

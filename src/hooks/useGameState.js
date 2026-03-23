@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { createStarterDeck, REWARD_POOL, cardNeedsTarget, DEBUG_CARD, BASE_CARDS } from '../data/cards'
+import { createStarterDeck, REWARD_POOL, LEGENDARY_POOL, cardNeedsTarget, DEBUG_CARD, BASE_CARDS } from '../data/cards'
 import { getEnemiesForFloor } from '../data/enemies'
 import { generateMap, NODE_TYPES, parseNodeId } from '../data/mapGenerator'
 import {
@@ -53,6 +53,7 @@ export function useGameState() {
   const [evasionChance, setEvasionChance] = useState(0)
   const [counter, setCounter] = useState(0)
   const [stance, setStance] = useState(null)
+  const [switchCount, setSwitchCount] = useState(0)
   const [battleEffect, setBattleEffect] = useState(null)
 
   // 맵 상태
@@ -77,6 +78,7 @@ export function useGameState() {
     setEvasionChance(0)
     setCounter(0)
     setStance(null)
+    setSwitchCount(0)
     setSelectedCardIndex(null)
   }, [])
 
@@ -196,7 +198,7 @@ export function useGameState() {
 
     const result = processCardEffects(card, {
       player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance,
-      logs: [],
+      switchCount, logs: [],
     }, targetIndex)
 
     setBattleEffect({ type: card.type, nature: card.nature || null, name: card.name, id: Date.now() })
@@ -209,6 +211,7 @@ export function useGameState() {
     setEvasionChance(result.evasionChance)
     setCounter(result.counter)
     setStance(result.stance)
+    setSwitchCount(result.switchCount || 0)
     setEnergy(prev => prev - card.cost)
     setSelectedCardIndex(null)
 
@@ -237,8 +240,14 @@ export function useGameState() {
       if (currentFloor >= 10) {
         setPhase(GAME_PHASE.VICTORY)
       } else {
-        const pool = shuffleArray(REWARD_POOL)
-        setRewardCards(pool.slice(0, 3).map((c, i) => ({ ...c, uid: `reward_${currentFloor}_${i}` })))
+        // 7층 이상에서 전설 카드 1장 포함 가능
+        let pool = shuffleArray(REWARD_POOL)
+        const rewards = pool.slice(0, 3)
+        if (currentFloor >= 7 && LEGENDARY_POOL.length > 0) {
+          const legendaryPool = shuffleArray(LEGENDARY_POOL)
+          rewards[2] = legendaryPool[0]
+        }
+        setRewardCards(rewards.map((c, i) => ({ ...c, uid: `reward_${currentFloor}_${i}` })))
         setPhase(GAME_PHASE.REWARD)
       }
     }
@@ -265,6 +274,17 @@ export function useGameState() {
 
     currentEnemies.forEach((enemy, i) => {
       if (enemy.hp <= 0) return
+
+      // 스턴(기맥차단) 체크
+      if (enemy.debuffs?.includes('stun')) {
+        currentEnemies[i] = {
+          ...currentEnemies[i],
+          debuffs: enemy.debuffs.filter(d => d !== 'stun'),
+        }
+        allLogs.push(`${enemy.name} 기맥차단! 행동 불가!`)
+        return
+      }
+
       const intent = enemyIntents[i]
       if (!intent) return
 
@@ -372,9 +392,10 @@ export function useGameState() {
     setEvasionChance(currentEvasionChance)
     setCounter(currentCounter)
     setStance(null)
+    setSwitchCount(0)
 
     addLogs(allLogs)
-  }, [phase, player, enemies, enemyIntents, turn, hand, drawPile, discardPile, evasionCount, evasionChance, counter, taeguk, buffs, addLogs])
+  }, [phase, player, enemies, enemyIntents, turn, hand, drawPile, discardPile, evasionCount, evasionChance, counter, taeguk, buffs, switchCount, addLogs])
 
   const clearBattleEffect = useCallback(() => setBattleEffect(null), [])
 
