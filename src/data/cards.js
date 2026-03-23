@@ -1,7 +1,14 @@
 export const CARD_TYPES = {
-  ATTACK: "attack",
-  SKILL: "skill",
-  POWER: "power",
+  CHOSIK: "chosik",   // 초식 (무공 기술 - 공격/방어)
+  SIMBEOP: "simbeop", // 심법 (내공/버프)
+  BOBEOP: "bobeop",   // 보법 (신법/이동/유틸)
+};
+
+// 초식 내 공/수 구분
+export const CARD_NATURE = {
+  ATTACK: "attack",   // 공(攻) - 공격 초식
+  DEFENSE: "defense",  // 수(守) - 방어 초식
+  DUAL: "dual",       // 공수(攻守) - 공수 겸용
 };
 
 export const RARITY = {
@@ -33,7 +40,8 @@ export const BASE_CARDS = [
   {
     id: "taichi_strike",
     name: "태극검",
-    type: CARD_TYPES.ATTACK,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
     rarity: RARITY.COMMON,
     cost: 1,
     description: "6 피해. 【전환】 방어→공격 시 50% 회피.",
@@ -47,7 +55,8 @@ export const BASE_CARDS = [
   {
     id: "inner_guard",
     name: "태극 방어",
-    type: CARD_TYPES.SKILL,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.COMMON,
     cost: 1,
     description: "호신강기 5. 【전환】 공격→방어 시 태극 +1.",
@@ -61,7 +70,7 @@ export const BASE_CARDS = [
   {
     id: "cloud_step",
     name: "유운보",
-    type: CARD_TYPES.SKILL,
+    type: CARD_TYPES.BOBEOP,
     rarity: RARITY.COMMON,
     cost: 0,
     description: "공격 1회 회피. 카드 1장 뽑기.",
@@ -74,7 +83,7 @@ export const BASE_CARDS = [
   {
     id: "gather_qi",
     name: "운수행공",
-    type: CARD_TYPES.SKILL,
+    type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.UNCOMMON,
     cost: 1,
     description:
@@ -92,7 +101,8 @@ export const BASE_CARDS = [
   {
     id: "taichi_counter",
     name: "태극검법 - 반격",
-    type: CARD_TYPES.SKILL,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 2,
     description: "피격 시 8 반사. 【전환】 공격→방어 시 호신강기 +4.",
@@ -106,7 +116,8 @@ export const BASE_CARDS = [
   {
     id: "yin_yang_switch",
     name: "음양전환",
-    type: CARD_TYPES.ATTACK,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DUAL,
     rarity: RARITY.UNCOMMON,
     cost: 1,
     description: "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해.",
@@ -121,7 +132,8 @@ export const BASE_CARDS = [
   {
     id: "qi_explosion",
     name: "진기폭발",
-    type: CARD_TYPES.ATTACK,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
     rarity: RARITY.RARE,
     cost: 2,
     description: "태극 전부 소모, 태극×5 피해. 【전환】 방어→공격 시 ×7.",
@@ -136,7 +148,7 @@ export const BASE_CARDS = [
   {
     id: "taichi_field",
     name: "태극진",
-    type: CARD_TYPES.POWER,
+    type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 3,
     description: "3턴 호신강기+8, 자동반격 5. 【전환】 시 즉시 호신강기 +6.",
@@ -158,7 +170,7 @@ export const BASE_CARDS = [
   {
     id: "wuji_mind",
     name: "무극심법",
-    type: CARD_TYPES.POWER,
+    type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 2,
     description: "3턴 태극 획득 2배, 피해+20%. 【전환】 시 태극 +2.",
@@ -181,7 +193,8 @@ export const BASE_CARDS = [
   {
     id: "void_sword",
     name: "태허검기",
-    type: CARD_TYPES.ATTACK,
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.ATTACK,
     rarity: RARITY.RARE,
     cost: 2,
     description:
@@ -200,7 +213,8 @@ export const BASE_CARDS = [
 export const DEBUG_CARD = {
   id: "debug_kill",
   name: "천지멸살",
-  type: CARD_TYPES.ATTACK,
+  type: CARD_TYPES.CHOSIK,
+  nature: CARD_NATURE.ATTACK,
   rarity: RARITY.RARE,
   cost: 0,
   description: "[디버그] 모든 적을 즉사시킨다.",

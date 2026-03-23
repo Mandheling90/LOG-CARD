@@ -1,27 +1,54 @@
 import { useEffect, useState } from 'react'
 
-const EFFECTS = {
+// 초식은 nature(공/수/공수)에 따라 이펙트가 달라짐
+const NATURE_EFFECTS = {
   attack: {
     symbols: ['⚔️', '💥', '🗡️'],
     color: 'text-red-400',
     bgColor: 'bg-red-500/20',
-    borderColor: 'border-red-500/50',
-    label: '공격',
+    slashColor: 'via-red-400',
   },
-  skill: {
-    symbols: ['☯️', '🌀', '💠'],
-    color: 'text-cyan-400',
-    bgColor: 'bg-cyan-500/20',
-    borderColor: 'border-cyan-500/50',
-    label: '태극',
+  defense: {
+    symbols: ['🛡️', '💠', '✨'],
+    color: 'text-blue-400',
+    bgColor: 'bg-blue-500/20',
+    slashColor: 'via-blue-400',
   },
-  power: {
+  dual: {
+    symbols: ['☯️', '⚔️', '🛡️'],
+    color: 'text-purple-400',
+    bgColor: 'bg-purple-500/20',
+    slashColor: 'via-purple-400',
+  },
+}
+
+const TYPE_EFFECTS = {
+  simbeop: {
     symbols: ['🔥', '✨', '💫'],
     color: 'text-amber-400',
     bgColor: 'bg-amber-500/20',
-    borderColor: 'border-amber-500/50',
-    label: '심법',
   },
+  bobeop: {
+    symbols: ['💨', '🌀', '✨'],
+    color: 'text-emerald-400',
+    bgColor: 'bg-emerald-500/20',
+  },
+}
+
+function getEffectConfig(effect) {
+  if (effect.type === 'chosik' && effect.nature) {
+    return { ...NATURE_EFFECTS[effect.nature], effectStyle: 'slash' }
+  }
+  if (effect.type === 'chosik') {
+    return { ...NATURE_EFFECTS.attack, effectStyle: 'slash' }
+  }
+  if (effect.type === 'simbeop') {
+    return { ...TYPE_EFFECTS.simbeop, effectStyle: 'glow' }
+  }
+  if (effect.type === 'bobeop') {
+    return { ...TYPE_EFFECTS.bobeop, effectStyle: 'ripple' }
+  }
+  return { ...NATURE_EFFECTS.attack, effectStyle: 'slash' }
 }
 
 export default function BattleEffect({ effect, onDone }) {
@@ -49,7 +76,7 @@ export default function BattleEffect({ effect, onDone }) {
 
   if (!effect) return null
 
-  const config = EFFECTS[effect.type] || EFFECTS.attack
+  const config = getEffectConfig(effect)
 
   return (
     <div className="pointer-events-none fixed inset-0 z-40 flex items-center justify-center">
@@ -99,21 +126,21 @@ export default function BattleEffect({ effect, onDone }) {
         </div>
       </div>
 
-      {/* Slash lines for attack */}
-      {effect.type === 'attack' && stage === 'active' && (
+      {/* Slash lines for chosik */}
+      {config.effectStyle === 'slash' && stage === 'active' && (
         <>
-          <div className="absolute w-[200%] h-0.5 bg-gradient-to-r from-transparent via-red-400 to-transparent rotate-45 animate-pulse opacity-80" />
-          <div className="absolute w-[200%] h-0.5 bg-gradient-to-r from-transparent via-red-400 to-transparent -rotate-45 animate-pulse opacity-80" />
+          <div className={`absolute w-[200%] h-0.5 bg-gradient-to-r from-transparent ${config.slashColor} to-transparent rotate-45 animate-pulse opacity-80`} />
+          <div className={`absolute w-[200%] h-0.5 bg-gradient-to-r from-transparent ${config.slashColor} to-transparent -rotate-45 animate-pulse opacity-80`} />
         </>
       )}
 
-      {/* Ripple for skill */}
-      {effect.type === 'skill' && stage === 'active' && (
-        <div className="absolute w-40 h-40 md:w-60 md:h-60 rounded-full border-2 border-cyan-400/60 animate-ping" />
+      {/* Ripple for bobeop */}
+      {config.effectStyle === 'ripple' && stage === 'active' && (
+        <div className="absolute w-40 h-40 md:w-60 md:h-60 rounded-full border-2 border-emerald-400/60 animate-ping" />
       )}
 
-      {/* Glow for power */}
-      {effect.type === 'power' && stage === 'active' && (
+      {/* Glow for simbeop */}
+      {config.effectStyle === 'glow' && stage === 'active' && (
         <div className="absolute w-32 h-32 md:w-48 md:h-48 rounded-full bg-amber-400/20 blur-2xl animate-pulse" />
       )}
     </div>

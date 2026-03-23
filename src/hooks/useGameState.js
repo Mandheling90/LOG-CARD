@@ -199,7 +199,7 @@ export function useGameState() {
       logs: [],
     }, targetIndex)
 
-    setBattleEffect({ type: card.type, name: card.name, id: Date.now() })
+    setBattleEffect({ type: card.type, nature: card.nature || null, name: card.name, id: Date.now() })
 
     setPlayer(result.player)
     setEnemies(result.enemies)

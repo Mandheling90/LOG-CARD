@@ -1,19 +1,26 @@
 const typeColors = {
-  attack: 'from-red-950 to-red-800 border-red-600',
-  skill: 'from-sky-950 to-sky-800 border-sky-600',
-  power: 'from-amber-950 to-amber-800 border-amber-600',
+  chosik: 'from-stone-950 to-stone-800 border-stone-500',
+  simbeop: 'from-amber-950 to-amber-800 border-amber-600',
+  bobeop: 'from-emerald-950 to-emerald-800 border-emerald-600',
 }
 
 const typeLabels = {
-  attack: '초식',
-  skill: '태극',
-  power: '심법',
+  chosik: '초식',
+  simbeop: '심법',
+  bobeop: '보법',
 }
 
 const typeIcons = {
-  attack: '⚔️',
-  skill: '☯️',
-  power: '🔥',
+  chosik: '⚔️',
+  simbeop: '🔥',
+  bobeop: '💨',
+}
+
+// 초식 내 공/수 구분 - 좌측 악센트 바 색상 + 아이콘
+const natureAccent = {
+  attack: { bar: 'bg-red-500', icon: '⚔️', label: '공', color: 'text-red-400' },
+  defense: { bar: 'bg-blue-500', icon: '🛡️', label: '수', color: 'text-blue-400' },
+  dual: { bar: 'bg-gradient-to-b from-red-500 to-blue-500', icon: '☯️', label: '공수', color: 'text-purple-400' },
 }
 
 const rarityGlow = {
@@ -23,9 +30,10 @@ const rarityGlow = {
 }
 
 export default function Card({ card, onClick, disabled, small, selected, mobile }) {
-  const colors = typeColors[card.type]
+  const colors = typeColors[card.type] || typeColors.chosik
   const glow = rarityGlow[card.rarity]
   const canPlay = !disabled
+  const nature = card.nature ? natureAccent[card.nature] : null
 
   const sizeClass = small
     ? 'w-32 h-44 p-2 text-xs'
@@ -38,7 +46,7 @@ export default function Card({ card, onClick, disabled, small, selected, mobile 
       onClick={onClick}
       disabled={disabled}
       className={`
-        relative flex flex-col rounded-xl border-2 bg-gradient-to-b
+        relative flex flex-col rounded-xl border-2 bg-gradient-to-b overflow-hidden
         ${colors} ${glow}
         ${sizeClass}
         ${canPlay ? 'hover:scale-110 hover:-translate-y-2 cursor-pointer' : 'opacity-50 cursor-not-allowed'}
@@ -46,23 +54,36 @@ export default function Card({ card, onClick, disabled, small, selected, mobile 
         transition-all duration-200
       `}
     >
+      {/* 초식 공/수 악센트 바 (좌측) */}
+      {nature && (
+        <div className={`absolute left-0 top-0 bottom-0 w-1 md:w-1.5 ${nature.bar} rounded-l-lg`} />
+      )}
+
       <div className="flex justify-between items-start w-full">
-        <span className="font-bold text-white truncate text-[10px] md:text-sm">{card.name}</span>
+        <span className="font-bold text-white truncate text-[10px] md:text-sm pl-1">{card.name}</span>
         <span className="flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full bg-amber-400 text-black font-bold text-[10px] md:text-xs shrink-0">
           {card.cost}
         </span>
       </div>
 
       <div className="flex-1 flex items-center justify-center my-1 md:my-2">
-        <span className="text-lg md:text-2xl">{typeIcons[card.type]}</span>
+        <span className="text-lg md:text-2xl">
+          {nature ? nature.icon : typeIcons[card.type]}
+        </span>
       </div>
 
-      <div className="text-gray-200 text-center text-xs leading-tight">
+      <div className="text-gray-200 text-center text-[9px] md:text-xs leading-tight">
         {card.description}
       </div>
 
-      <div className="text-gray-400 text-[10px] mt-1 text-center">
-        {typeLabels[card.type]}
+      {/* 하단: 카테고리 + 공/수 태그 */}
+      <div className="flex items-center justify-center gap-1 mt-1">
+        <span className="text-gray-400 text-[10px]">{typeLabels[card.type]}</span>
+        {nature && (
+          <span className={`text-[9px] md:text-[10px] font-bold ${nature.color}`}>
+            {nature.label}
+          </span>
+        )}
       </div>
     </button>
   )
