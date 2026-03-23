@@ -45,8 +45,9 @@ function getCardStance(card) {
       return "attack";
     if (e.type === "block" || e.type === "counter") return "defense";
     if (e.type === "stanceSwitch") return "switch"; // 별도 처리
+    // forceSwitch, blockToDamage 등은 효과 처리 중 직접 stance 변경
   }
-  return null; // 유운보, 운수행공 등 자세 변경 없는 카드
+  return null;
 }
 
 // 자세 전환이 발생하는지 판별
@@ -92,6 +93,9 @@ export function processCardEffects(card, state, targetIndex) {
     (m, b) => (b.taegukMultiplier ? m * b.taegukMultiplier : m),
     1,
   );
+
+  // 초기 자세 기록 (perSwitch 버프 판정용)
+  const initialStance = stance;
 
   // 자세 전환 보너스 판정
   const prevStance = stance;
@@ -250,9 +254,80 @@ export function processCardEffects(card, state, targetIndex) {
             perTurn: effect.perTurn || null,
             taegukMultiplier: effect.taegukMultiplier || null,
             damageReceiveMultiplier: effect.damageReceiveMultiplier || null,
+            perSwitch: effect.perSwitch || null,
+            onEvade: effect.onEvade || null,
+            grantedStrength: effect.grantedStrength || null,
           },
         ];
         logs.push(`${effect.name} 발동! (${effect.duration}턴)`);
+        break;
+      }
+
+      // ===== 신규 효과 =====
+
+      case "forceSwitch": {
+        if (stance === "attack") {
+          stance = "defense";
+          logs.push(`${card.name} → 공→수 전환!`);
+        } else {
+          stance = "attack";
+          logs.push(`${card.name} → 수→공 전환!`);
+        }
+        break;
+      }
+
+      case "blockToDamage": {
+        const currentBlock = player.block || 0;
+        if (currentBlock <= 0) {
+          logs.push(`${card.name} → 호신강기가 없다!`);
+          break;
+        }
+        const dmg = Math.floor(currentBlock * effect.ratio);
+        enemies = enemies.map((e) => {
+          if (e.hp <= 0) return e;
+          logs.push(`${card.name} → ${e.name}에게 ${dmg} 타격 (호신강기 전환)`);
+          return dealDamage(e, dmg);
+        });
+        break;
+      }
+
+      case "consumeTaegukDraw": {
+        if (taeguk <= 0) {
+          logs.push(`${card.name} → 태극이 없다!`);
+          break;
+        }
+        const drawAmount = Math.floor(taeguk * effect.ratio);
+        logs.push(`${card.name} → 태극 ${taeguk} 소모 → ${drawAmount}장 뽑기!`);
+        // draw는 drawCount에 합산하여 처리
+        effect._drawOverride = drawAmount;
+        taeguk = 0;
+        break;
+      }
+
+      case "selfDamage": {
+        player.hp -= effect.value;
+        logs.push(`${card.name} → 자해 ${effect.value} 피해!`);
+        break;
+      }
+
+      case "taegukStrength": {
+        const bonus = Math.floor(taeguk / 2);
+        if (bonus <= 0) {
+          logs.push(`${card.name} → 태극이 부족하여 효과 미미`);
+          break;
+        }
+        player.strength = (player.strength || 0) + bonus;
+        buffs = buffs.filter((b) => b.buffId !== "taeguk_insight");
+        buffs = [
+          ...buffs,
+          {
+            buffId: "taeguk_insight",
+            name: "태극심안",
+            duration: effect.duration,
+            grantedStrength: bonus,
+          },
+        ];
+        logs.push(`${card.name} → 공력 +${bonus} (${effect.duration}턴)`);
         break;
       }
     }
@@ -284,9 +359,28 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
-  const drawCount = card.effects
-    .filter((e) => e.type === "draw")
-    .reduce((sum, e) => sum + e.value, 0);
+  // 자세 전환 시 perSwitch 버프 발동 (음양연환 등)
+  if (initialStance !== null && stance !== initialStance) {
+    for (const buff of buffs) {
+      if (buff.perSwitch?.aoeDamage) {
+        const dmg = buff.perSwitch.aoeDamage;
+        enemies = enemies.map((e) => {
+          if (e.hp <= 0) return e;
+          logs.push(`${buff.name} → 전환 피해! ${e.name}에게 ${dmg}`);
+          return dealDamage(e, dmg);
+        });
+      }
+    }
+  }
+
+  // 드로우 수 합산 (consumeTaegukDraw의 동적 드로우 포함)
+  let drawCount = 0;
+  for (const effect of card.effects) {
+    if (effect.type === "draw") drawCount += effect.value;
+    if (effect.type === "consumeTaegukDraw" && effect._drawOverride) {
+      drawCount += effect._drawOverride;
+    }
+  }
 
   return {
     player,
@@ -321,14 +415,17 @@ export function processEnemyAttack(damage, state) {
   if (evasionCount > 0) {
     evasionCount--;
     logs.push(`유운보로 공격 회피!`);
-    return { player, evasionCount, evasionChance, counter, logs, dodged: true };
+    // 회피 시 onEvade 버프 체크
+    const onEvadeDmg = getOnEvadeDamage(buffs);
+    return { player, evasionCount, evasionChance, counter, logs, dodged: true, counterDmg: 0, onEvadeDmg };
   }
 
   // 확률 회피
   if (evasionChance > 0 && Math.random() * 100 < evasionChance) {
     evasionChance = 0;
     logs.push(`태극검의 기운으로 공격 회피!`);
-    return { player, evasionCount, evasionChance, counter, logs, dodged: true };
+    const onEvadeDmg = getOnEvadeDamage(buffs);
+    return { player, evasionCount, evasionChance, counter, logs, dodged: true, counterDmg: 0, onEvadeDmg };
   }
 
   // 실제 피해
@@ -346,7 +443,16 @@ export function processEnemyAttack(damage, state) {
     logs,
     dodged: false,
     counterDmg,
+    onEvadeDmg: 0,
   };
+}
+
+// 회피 시 onEvade 버프의 피해량 반환
+function getOnEvadeDamage(buffs) {
+  for (const buff of buffs) {
+    if (buff.onEvade?.damage) return buff.onEvade.damage;
+  }
+  return 0;
 }
 
 // 턴 시작 시 버프 효과 적용
@@ -372,10 +478,21 @@ export function applyBuffsOnTurnStart(state) {
     }
   }
 
-  // 버프 지속시간 감소
-  buffs = buffs
-    .map((b) => ({ ...b, duration: b.duration - 1 }))
-    .filter((b) => b.duration > 0);
+  // 버프 지속시간 감소 + 만료 시 grantedStrength 회수
+  const newBuffs = [];
+  for (const b of buffs) {
+    const remaining = b.duration - 1;
+    if (remaining > 0) {
+      newBuffs.push({ ...b, duration: remaining });
+    } else {
+      // 만료: 태극심안 등 부여한 공력 회수
+      if (b.grantedStrength) {
+        player.strength = Math.max(0, (player.strength || 0) - b.grantedStrength);
+        logs.push(`${b.name} 만료 → 공력 -${b.grantedStrength}`);
+      }
+    }
+  }
+  buffs = newBuffs;
 
   return { player, taeguk, counter, buffs, logs };
 }

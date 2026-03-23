@@ -284,6 +284,17 @@ export function useGameState() {
         allLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`)
         allLogs.push(...result.logs)
 
+        // 회피 시 유운반격 등 onEvade 피해
+        if (result.dodged && result.onEvadeDmg > 0) {
+          const blocked = Math.min(currentEnemies[i].block || 0, result.onEvadeDmg)
+          currentEnemies[i] = {
+            ...currentEnemies[i],
+            block: Math.max(0, (currentEnemies[i].block || 0) - result.onEvadeDmg),
+            hp: currentEnemies[i].hp - (result.onEvadeDmg - blocked),
+          }
+          allLogs.push(`유운반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`)
+        }
+
         if (!result.dodged && result.counterDmg > 0) {
           const blocked = Math.min(currentEnemies[i].block || 0, result.counterDmg)
           currentEnemies[i] = {

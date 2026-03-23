@@ -144,6 +144,81 @@ export const BASE_CARDS = [
       label: "축적 폭발! → 배율 ×7!",
     },
   },
+  // ===== 신규 중급 카드 =====
+  {
+    id: "flow_trigger",
+    name: "태극유도",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.UNCOMMON,
+    cost: 1,
+    description: "즉시 자세 전환. 카드 1장 뽑기. 태극 +1.",
+    effects: [
+      { type: "forceSwitch" },
+      { type: "draw", value: 1 },
+      { type: "taeguk", value: 1 },
+    ],
+  },
+  {
+    id: "reflect_field",
+    name: "태극반진",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DEFENSE,
+    rarity: RARITY.UNCOMMON,
+    cost: 2,
+    description: "현재 호신강기의 50%를 적 전체에 피해.",
+    effects: [
+      { type: "blockToDamage", ratio: 0.5 },
+    ],
+  },
+  {
+    id: "cloud_counter",
+    name: "유운반격",
+    type: CARD_TYPES.BOBEOP,
+    rarity: RARITY.UNCOMMON,
+    cost: 1,
+    description: "카드 1장 뽑기. 이번 턴 회피 시 10 피해.",
+    effects: [
+      { type: "draw", value: 1 },
+      { type: "buff", buffId: "cloud_counter", name: "유운반격", duration: 1, onEvade: { damage: 10 } },
+    ],
+  },
+  // ===== 신규 고급 카드 =====
+  {
+    id: "yin_yang_chain",
+    name: "음양연환",
+    type: CARD_TYPES.CHOSIK,
+    nature: CARD_NATURE.DUAL,
+    rarity: RARITY.RARE,
+    cost: 2,
+    description: "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해.",
+    effects: [
+      { type: "forceSwitch" },
+      { type: "buff", buffId: "yin_yang_chain", name: "음양연환", duration: 3, perSwitch: { aoeDamage: 6 } },
+    ],
+  },
+  {
+    id: "reverse_qi",
+    name: "천지동수",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.RARE,
+    cost: 0,
+    description: "태극 전부 소모, 소모량만큼 카드 뽑기. 자해 10.",
+    effects: [
+      { type: "consumeTaegukDraw", ratio: 1 },
+      { type: "selfDamage", value: 10 },
+    ],
+  },
+  {
+    id: "taeguk_insight",
+    name: "태극심안",
+    type: CARD_TYPES.SIMBEOP,
+    rarity: RARITY.RARE,
+    cost: 2,
+    description: "3턴간 공력 +(태극÷2). 태극 유지.",
+    effects: [
+      { type: "taegukStrength", duration: 3 },
+    ],
+  },
   // ===== 고급 카드 =====
   {
     id: "taichi_field",
