@@ -9,7 +9,7 @@ import RestScreen from './components/RestScreen'
 import EventScreen from './components/EventScreen'
 import BattleEffect from './components/BattleEffect'
 import Tooltip from './components/Tooltip'
-import { REWARD_POOL } from './data/cards'
+import { REWARD_POOL, LEGENDARY_POOL } from './data/cards'
 
 function App() {
   const {
@@ -63,7 +63,7 @@ function App() {
 
   // 기연 이벤트
   if (phase === GAME_PHASE.EVENT) {
-    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} />
+    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} legendaryPool={LEGENDARY_POOL} player={player} />
   }
 
   // 게임 오버

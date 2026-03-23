@@ -1,5 +1,13 @@
 const EVENTS = [
   {
+    title: '봉인된 석실',
+    description: '산 깊숙이 고대 봉인이 걸린 석실을 발견했다. 강렬한 기운이 느껴진다.',
+    choices: [
+      { text: '봉인을 깨뜨린다 (체력 30% 소모, 전설 무공 획득)', effect: 'legendary' },
+      { text: '위험하다, 돌아간다', effect: 'skip' },
+    ],
+  },
+  {
     title: '숨겨진 동굴',
     description: '산 속 동굴에서 옛 무림 고수의 흔적을 발견했다.',
     choices: [
@@ -12,7 +20,7 @@ const EVENTS = [
     description: '길가에서 약초를 캐는 노인을 만났다.',
     choices: [
       { text: '약을 구한다 (체력 +15)', effect: 'heal' },
-      { text: '대화를 나눈다 (태극 +3)', effect: 'taeguk' },
+      { text: '대화를 나눈다 (공력 +1)', effect: 'strength' },
     ],
   },
   {
@@ -33,11 +41,25 @@ const EVENTS = [
   },
 ]
 
-export default function EventScreen({ onResolve, rewardPool }) {
-  const event = EVENTS[Math.floor(Math.random() * EVENTS.length)]
+export default function EventScreen({ onResolve, rewardPool, legendaryPool, player }) {
+  // 봉인된 석실은 전설 풀이 있을 때만 등장
+  const available = legendaryPool?.length > 0
+    ? EVENTS
+    : EVENTS.filter(e => e.title !== '봉인된 석실')
+  const event = available[Math.floor(Math.random() * available.length)]
 
   function handleChoice(effect) {
     switch (effect) {
+      case 'legendary': {
+        if (!legendaryPool?.length) {
+          onResolve({ message: '봉인 속에 아무것도 없었다...' })
+          break
+        }
+        const card = legendaryPool[Math.floor(Math.random() * legendaryPool.length)]
+        const hpCost = -Math.floor((player?.hp || 80) * 0.3)
+        onResolve({ hpChange: hpCost, card, message: `봉인을 깨뜨리고 ${card.name}을(를) 깨달았다!` })
+        break
+      }
       case 'explore': {
         const card = rewardPool[Math.floor(Math.random() * rewardPool.length)]
         onResolve({ hpChange: -10, card, message: `체력을 소모하고 ${card.name}을(를) 깨달았다!` })
@@ -46,9 +68,6 @@ export default function EventScreen({ onResolve, rewardPool }) {
       case 'heal':
         onResolve({ hpChange: 15, message: '약사의 약으로 체력을 회복했다.' })
         break
-      case 'taeguk':
-        onResolve({ taegukChange: 3, message: '노인의 조언으로 태극이 깊어졌다.' })
-        break
       case 'card': {
         const card = rewardPool[Math.floor(Math.random() * rewardPool.length)]
         onResolve({ card, message: `비급을 수련하여 ${card.name}을(를) 깨달았다!` })
@@ -56,6 +75,9 @@ export default function EventScreen({ onResolve, rewardPool }) {
       }
       case 'heal_small':
         onResolve({ hpChange: 10, message: '조용한 수련으로 기력을 되찾았다.' })
+        break
+      case 'strength':
+        onResolve({ strengthChange: 1, message: '노인의 조언으로 공력이 상승했다.' })
         break
       case 'intimidate':
         onResolve({ hpChange: -5, strengthChange: 1, message: '산적을 쫓아내며 기세가 올랐다!' })
