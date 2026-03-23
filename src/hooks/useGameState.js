@@ -90,6 +90,7 @@ export function useGameState() {
     setStance(null)
     setSwitchCount(0)
     setSelectedCardIndex(null)
+    setSelectedEnemyIndex(null)
   }, [])
 
   // 선택 가능한 다음 노드 계산
@@ -191,22 +192,44 @@ export function useGameState() {
     }
   }, [deck, addLog, resetBattleState])
 
-  // 카드 선택
+  // 대상 선택 (적 클릭)
+  const [selectedEnemyIndex, setSelectedEnemyIndex] = useState(null)
+  const [toast, setToast] = useState(null)
+  const toastTimer = useRef(null)
+
+  const showToast = useCallback((msg) => {
+    setToast(msg)
+    if (toastTimer.current) clearTimeout(toastTimer.current)
+    toastTimer.current = setTimeout(() => setToast(null), 1500)
+  }, [])
+
+  const selectEnemy = useCallback((enemyIndex) => {
+    if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return
+    setSelectedEnemyIndex(prev => prev === enemyIndex ? null : enemyIndex)
+  }, [phase, isEnemyTurn])
+
+  // 카드 선택 → 즉시 발동
   const selectCard = useCallback((cardIndex) => {
-    if (phase !== GAME_PHASE.BATTLE) return
+    if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return
     const card = hand[cardIndex]
     if (!card || card.cost > energy) return
 
     if (cardNeedsTarget(card)) {
-      setSelectedCardIndex(cardIndex)
+      // 적이 1마리면 자동 타겟
+      const aliveEnemies = enemies.map((e, i) => ({ ...e, idx: i })).filter(e => e.hp > 0)
+      let target = selectedEnemyIndex
+      if (aliveEnemies.length === 1) {
+        target = aliveEnemies[0].idx
+      }
+      if (target === null || enemies[target]?.hp <= 0) {
+        showToast('대상을 먼저 선택하시오!')
+        return
+      }
+      playCardOnTarget(cardIndex, target)
     } else {
       playCardOnTarget(cardIndex, null)
     }
-  }, [phase, hand, energy])
-
-  const cancelSelection = useCallback(() => {
-    setSelectedCardIndex(null)
-  }, [])
+  }, [phase, isEnemyTurn, hand, energy, selectedEnemyIndex, enemies, showToast])
 
   const playCardOnTarget = useCallback((cardIndex, targetIndex) => {
     if (phase !== GAME_PHASE.BATTLE) return
@@ -230,7 +253,6 @@ export function useGameState() {
     setStance(result.stance)
     setSwitchCount(result.switchCount || 0)
     setEnergy(prev => prev - card.cost)
-    setSelectedCardIndex(null)
 
     let newHand = hand.filter((_, i) => i !== cardIndex)
     let currentDrawPile = drawPile
@@ -249,6 +271,11 @@ export function useGameState() {
     setDrawPile(currentDrawPile)
     setDiscardPile(currentDiscardPile)
     addLogs(result.logs)
+
+    // 선택된 적이 죽었으면 선택 해제
+    if (targetIndex !== null && result.enemies[targetIndex]?.hp <= 0) {
+      setSelectedEnemyIndex(null)
+    }
 
     const alive = result.enemies.filter(e => e.hp > 0)
     if (alive.length === 0) {
@@ -270,10 +297,6 @@ export function useGameState() {
     }
   }, [phase, hand, energy, player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance, drawPile, discardPile, currentFloor, addLog, addLogs])
 
-  const selectTarget = useCallback((enemyIndex) => {
-    if (selectedCardIndex === null) return
-    playCardOnTarget(selectedCardIndex, enemyIndex)
-  }, [selectedCardIndex, playCardOnTarget])
 
   const endTurn = useCallback(() => {
     if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return
@@ -525,13 +548,13 @@ export function useGameState() {
   return {
     phase, player, energy, hand, drawPile, discardPile,
     enemies, enemyIntents, rewardCards, log, deck,
-    selectedCardIndex, taeguk, buffs, evasionCount, counter, stance,
-    battleEffect,
+    selectedEnemyIndex, taeguk, buffs, evasionCount, counter, stance,
+    battleEffect, toast,
     isEnemyTurn, activeEnemyIndex, activeEnemyAction,
     // 맵 관련
     mapFloors, currentFloor, visitedNodes, availableNodes,
     // 액션
-    startGame, selectCard, selectTarget, cancelSelection, endTurn,
+    startGame, selectCard, selectEnemy, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
     clearBattleEffect,
   }

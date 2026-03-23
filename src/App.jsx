@@ -15,15 +15,13 @@ function App() {
   const {
     phase, player, energy, hand, drawPile, discardPile,
     enemies, enemyIntents, rewardCards, log, deck,
-    selectedCardIndex, taeguk, buffs, evasionCount, counter, stance,
+    selectedEnemyIndex, taeguk, buffs, evasionCount, counter, stance,
     isEnemyTurn, activeEnemyIndex, activeEnemyAction,
     mapFloors, currentFloor, visitedNodes, availableNodes,
-    startGame, selectCard, selectTarget, cancelSelection, endTurn,
+    startGame, selectCard, selectEnemy, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
-    battleEffect, clearBattleEffect,
+    battleEffect, clearBattleEffect, toast,
   } = useGameState()
-
-  const isTargeting = selectedCardIndex !== null
 
   // 타이틀
   if (phase === GAME_PHASE.TITLE) {
@@ -113,8 +111,8 @@ function App() {
         <div className="text-gray-500 text-xs md:text-sm">
           {isEnemyTurn ? (
             <span className="text-red-400 font-bold animate-pulse">적의 턴</span>
-          ) : isTargeting ? (
-            <span className="text-red-400 font-bold animate-pulse">대상을 선택하시오</span>
+          ) : selectedEnemyIndex !== null ? (
+            <span className="text-amber-400 font-bold">🎯 {enemies[selectedEnemyIndex]?.name} 지정</span>
           ) : (
             '무당검협전'
           )}
@@ -125,9 +123,9 @@ function App() {
       </div>
 
       {/* Battle Area */}
-      <div className="flex-1 min-h-0 flex flex-col md:flex-row items-center justify-center gap-2 md:gap-6 px-3 md:px-6 py-1 md:py-2 overflow-y-auto">
+      <div className="flex-1 min-h-0 flex flex-col md:flex-row items-stretch md:items-center justify-start md:justify-center gap-1 md:gap-6 px-2 md:px-6 py-1 md:py-2 overflow-y-auto">
         {/* Player (Left) */}
-        <div className="md:flex-1 flex justify-center md:justify-end">
+        <div className="shrink-0 md:flex-1 flex justify-center md:justify-end">
           <PlayerStatus
             player={player}
             energy={energy}
@@ -154,8 +152,9 @@ function App() {
                 key={enemy.uid}
                 enemy={enemy}
                 intent={enemyIntents[i]}
-                selectable={isTargeting && enemy.hp > 0}
-                onClick={() => isTargeting && enemy.hp > 0 && selectTarget(i)}
+                selectable={!isEnemyTurn && enemy.hp > 0}
+                selected={selectedEnemyIndex === i}
+                onClick={() => !isEnemyTurn && enemy.hp > 0 && selectEnemy(i)}
                 isActing={isEnemyTurn && activeEnemyIndex === i}
                 actionType={isEnemyTurn && activeEnemyIndex === i ? activeEnemyAction : null}
               />
@@ -168,17 +167,36 @@ function App() {
         </div>
       </div>
 
-      {/* Targeting cancel */}
-      {isTargeting && (
-        <div className="shrink-0 text-center py-1 md:py-2">
+      {/* Action Bar */}
+      <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-1.5 md:py-2 bg-gray-900/60 border-t border-gray-800">
+        <Tooltip text="태극 3 소모하여 기력 +1 획득">
           <button
-            onClick={cancelSelection}
-            className="px-4 py-1 text-sm text-gray-400 hover:text-white border border-gray-700 hover:border-gray-500 rounded-lg transition cursor-pointer"
+            onClick={spendTaeguk}
+            disabled={taeguk < 3 || isEnemyTurn}
+            className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-lg border border-cyan-600 transition-all whitespace-nowrap ${
+              taeguk >= 3 && !isEnemyTurn
+                ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
+                : 'opacity-50 cursor-not-allowed'
+            }`}
           >
-            취소
+            ☯ 태극→기력
           </button>
-        </div>
-      )}
+        </Tooltip>
+
+        <Tooltip text="턴을 넘기면 적이 행동합니다">
+          <button
+            onClick={endTurn}
+            disabled={isEnemyTurn}
+            className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-gray-700 to-gray-900 text-amber-300 font-bold rounded-lg border border-gray-600 transition-all whitespace-nowrap ${
+              isEnemyTurn
+                ? 'opacity-50 cursor-not-allowed'
+                : 'hover:from-gray-600 hover:to-gray-800 hover:scale-105 cursor-pointer'
+            }`}
+          >
+            {isEnemyTurn ? '⏳ 적의 턴...' : '⏭ 턴 종료'}
+          </button>
+        </Tooltip>
+      </div>
 
       {/* Hand */}
       <div className="shrink-0 bg-gray-900/90 border-t border-gray-800 px-2 md:px-6 py-2 md:py-4">
@@ -189,46 +207,24 @@ function App() {
                 card={card}
                 onClick={() => !isEnemyTurn && selectCard(i)}
                 disabled={card.cost > energy || isEnemyTurn}
-                selected={selectedCardIndex === i}
                 mobile
               />
             </div>
           ))}
-
-          <div className="shrink-0 flex gap-2 ml-2 md:ml-6">
-            <Tooltip text="태극 3 소모하여 기력 +1 획득">
-              <button
-                onClick={spendTaeguk}
-                disabled={taeguk < 3 || isEnemyTurn}
-                className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-xl border border-cyan-600 transition-all whitespace-nowrap ${
-                  taeguk >= 3 && !isEnemyTurn
-                    ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
-                    : 'opacity-50 cursor-not-allowed'
-                }`}
-              >
-                태극→기력
-              </button>
-            </Tooltip>
-
-            <Tooltip text="턴을 넘기면 적이 행동합니다">
-              <button
-                onClick={endTurn}
-                disabled={isEnemyTurn}
-                className={`px-3 md:px-6 py-2 md:py-3 text-sm md:text-base bg-gradient-to-b from-gray-700 to-gray-900 text-amber-300 font-bold rounded-xl border border-gray-600 transition-all whitespace-nowrap ${
-                  isEnemyTurn
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'hover:from-gray-600 hover:to-gray-800 hover:scale-105 cursor-pointer'
-                }`}
-              >
-                {isEnemyTurn ? '적의 턴...' : '턴 종료'}
-              </button>
-            </Tooltip>
-          </div>
         </div>
       </div>
 
       {/* Battle Effect */}
       <BattleEffect effect={battleEffect} onDone={clearBattleEffect} />
+
+      {/* Toast */}
+      {toast && (
+        <div className="fixed top-16 left-1/2 -translate-x-1/2 z-50 animate-toast">
+          <div className="bg-red-900/90 text-red-200 px-4 py-2 rounded-lg border border-red-700 text-sm font-bold shadow-lg">
+            {toast}
+          </div>
+        </div>
+      )}
 
       {/* Reward Modal */}
       {phase === GAME_PHASE.REWARD && (
