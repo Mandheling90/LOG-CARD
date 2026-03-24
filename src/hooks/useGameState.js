@@ -187,13 +187,14 @@ export function useGameState() {
             : drawn;
 
           setTurn(0);
-          setEnergy(MAX_ENERGY);
           setHand(handCards);
           setDrawPile(newDrawPile);
           setDiscardPile([]);
           setEnemies(newEnemies);
           setEnemyIntents(newEnemies.map((e) => getEnemyIntent(e, 0)));
           resetBattleState();
+          setEnergy(IS_DEBUG ? 10 : MAX_ENERGY);
+          if (IS_DEBUG) setTaeguk(3);
           setPhase(GAME_PHASE.BATTLE);
 
           const names = newEnemies.map((e) => e.name).join(", ");
