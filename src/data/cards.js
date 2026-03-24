@@ -119,7 +119,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해.",
+    description: "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해. 【전환】 태극 +2.",
     effects: [
       {
         type: "stanceSwitch",
@@ -127,6 +127,11 @@ export const BASE_CARDS = [
         defenseEffect: { type: "aoe", value: 10 },
       },
     ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "taeguk", value: 2 }],
+      label: "음양 순환! → 태극 +2",
+    },
   },
   {
     id: "taeguk_break_balance",
@@ -153,10 +158,15 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "호신강기 8. 태극 3 이상이면 13.",
+    description: "호신강기 8. 태극 3 이상이면 13. 【전환】 공격→방어 시 태극 +1.",
     effects: [
       { type: "block", value: 8, taegukBonus: { threshold: 3, value: 13 } },
     ],
+    switchBonus: {
+      direction: "atk_to_def",
+      effects: [{ type: "taeguk", value: 1 }],
+      label: "강벽 응축! → 태극 +1",
+    },
   },
   {
     id: "qi_explosion",
@@ -194,8 +204,13 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 2,
-    description: "현재 호신강기의 50%를 적 전체에 피해.",
+    description: "현재 호신강기의 50%를 적 전체에 피해. 【전환】 공격→방어 시 호신강기 +5.",
     effects: [{ type: "blockToDamage", ratio: 0.5 }],
+    switchBonus: {
+      direction: "atk_to_def",
+      effects: [{ type: "block", value: 5 }],
+      label: "반진 강화! → 호신강기 +5",
+    },
   },
   {
     id: "cloud_counter",
@@ -218,7 +233,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해.",
+    description: "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해. 【전환】 카드 1장 뽑기.",
     effects: [
       { type: "forceSwitch" },
       {
@@ -229,6 +244,11 @@ export const BASE_CARDS = [
         perSwitch: { aoeDamage: 6 },
       },
     ],
+    switchBonus: {
+      direction: "any",
+      effects: [{ type: "draw", value: 1 }],
+      label: "연환 가속! → 비급 1장",
+    },
   },
   {
     id: "igiunsin",
@@ -343,11 +363,16 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "반격 6. 이번 턴 전환 시마다 반격 +4.",
+    description: "반격 6. 이번 턴 전환 시마다 반격 +4. 【전환】 공격→방어 시 반격 +3.",
     effects: [
       { type: "counter", value: 6 },
       { type: "counterPerSwitch", value: 4 },
     ],
+    switchBonus: {
+      direction: "atk_to_def",
+      effects: [{ type: "counter", value: 3 }],
+      label: "연환 반격! → 반격 +3",
+    },
   },
   {
     id: "taeguk_dance",
@@ -416,12 +441,17 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.LEGENDARY,
     cost: 1,
-    description: "체력 10% 소모, 20 피해. 적 처치 시 태극 +3.",
+    description: "체력 10% 소모, 20 피해. 적 처치 시 태극 +3. 【전환】 방어→공격 시 체력 5 회복.",
     effects: [
       { type: "selfHpCostPercent", value: 10 },
       { type: "damage", value: 20 },
       { type: "onKillTaeguk", value: 3 },
     ],
+    switchBonus: {
+      direction: "def_to_atk",
+      effects: [{ type: "heal", value: 5 }],
+      label: "천지귀원! → 체력 회복 +5",
+    },
   },
   {
     id: "taeguk_wuji",
@@ -498,7 +528,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.LEGENDARY,
     cost: 3,
-    description: "이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가.",
+    description: "이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가. 【전환】 공격→방어 시 태극 +3.",
     effects: [
       {
         type: "buff",
@@ -509,6 +539,11 @@ export const BASE_CARDS = [
         storedDamage: 0,
       },
     ],
+    switchBonus: {
+      direction: "atk_to_def",
+      effects: [{ type: "taeguk", value: 3 }],
+      label: "혜검 수호! → 태극 +3",
+    },
   },
   {
     id: "formless",
