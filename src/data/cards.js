@@ -23,9 +23,7 @@ export function cardNeedsTarget(card) {
   if (card.effects) {
     return card.effects.some(
       (e) =>
-        e.type === "damage" ||
-        e.type === "finisher" ||
-        e.type === "multiHit",
+        e.type === "damage" || e.type === "finisher" || e.type === "multiHit",
     );
   }
   return false;
@@ -45,12 +43,12 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "6 피해. 【전환】 방어→공격 시 호신강기 +4.",
+    description: "6 피해. 【전환】 방어→공격 시 호신강기 +2.",
     effects: [{ type: "damage", value: 6, target: "single" }],
     switchBonus: {
       direction: "def_to_atk",
-      effects: [{ type: "block", value: 3 }],
-      label: "태극 흐름! → 호신강기 +3",
+      effects: [{ type: "block", value: 2 }],
+      label: "태극 흐름! → 호신강기 +1",
     },
   },
   {
@@ -60,8 +58,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "호신강기 6. 【전환】 공격→방어 시 태극 +1.",
-    effects: [{ type: "block", value: 6 }],
+    description: "호신강기 4. 【전환】 공격→방어 시 태극 +1.",
+    effects: [{ type: "block", value: 4 }],
     switchBonus: {
       direction: "atk_to_def",
       effects: [{ type: "taeguk", value: 1 }],
@@ -74,9 +72,9 @@ export const BASE_CARDS = [
     type: CARD_TYPES.BOBEOP,
     rarity: RARITY.COMMON,
     cost: 0,
-    description: "호신강기 4. 카드 1장 뽑기.",
+    description: "호신강기 1. 카드 1장 뽑기.",
     effects: [
-      { type: "block", value: 4 },
+      { type: "block", value: 1 },
       { type: "draw", value: 1 },
     ],
   },
@@ -320,7 +318,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "호신강기 10. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
+    description:
+      "호신강기 10. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
     effects: [
       { type: "block", value: 10 },
       {
@@ -358,10 +357,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description: "5×2 피해. 사용 후 자세 전환. 【전환】 호신강기 5.",
-    effects: [
-      { type: "multiHit", value: 5, hits: 2 },
-      { type: "forceSwitch" },
-    ],
+    effects: [{ type: "multiHit", value: 5, hits: 2 }, { type: "forceSwitch" }],
     switchBonus: {
       direction: "any",
       effects: [{ type: "block", value: 5 }],
