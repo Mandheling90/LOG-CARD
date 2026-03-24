@@ -85,17 +85,11 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description:
-      "태극 +2. 다음 턴 태극 +1. 【전환】 공격→방어 시 태극 +1 추가.",
+    description: "태극 +2. 다음 턴 태극 +1.",
     effects: [
       { type: "taeguk", value: 2 },
       { type: "taegukNextTurn", value: 1 },
     ],
-    switchBonus: {
-      direction: "atk_to_def",
-      effects: [{ type: "taeguk", value: 1 }],
-      label: "기세 전환! → 태극 +1 추가",
-    },
   },
   {
     id: "taichi_counter",
@@ -278,7 +272,7 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 3,
-    description: "3턴 호신강기+6, 자동반격 5. 【전환】 시 즉시 호신강기 +5.",
+    description: "3턴 호신강기+6, 자동반격 5.",
     effects: [
       {
         type: "buff",
@@ -288,19 +282,14 @@ export const BASE_CARDS = [
         perTurn: { block: 6, counter: 5 },
       },
     ],
-    switchBonus: {
-      direction: "any",
-      effects: [{ type: "block", value: 5 }],
-      label: "진법 공명! → 호신강기 +5",
-    },
   },
   {
     id: "wuji_mind",
     name: "무극심법",
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
-    cost: 2,
-    description: "3턴 태극 획득 2배, 피해+20%. 【전환】 시 태극 +2.",
+    cost: 3,
+    description: "3턴 태극 획득 2배.",
     effects: [
       {
         type: "buff",
@@ -308,14 +297,8 @@ export const BASE_CARDS = [
         name: "무극심법",
         duration: 3,
         taegukMultiplier: 2,
-        damageReceiveMultiplier: 1.2,
       },
     ],
-    switchBonus: {
-      direction: "any",
-      effects: [{ type: "taeguk", value: 2 }],
-      label: "무극 순환! → 태극 +2",
-    },
   },
   {
     id: "void_sword",
@@ -325,7 +308,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "전체 12 피해. 태극3↑ 2배. 【전환】 방어→공격 시 태극 조건 2으로 완화.",
+      "전체 12 피해. 태극3 이상 시 2배. 【전환】 방어→공격 시 태극 조건 2으로 완화.",
     effects: [
       { type: "aoe", value: 12, taegukThreshold: 3, bonusMultiplier: 2 },
     ],
@@ -460,8 +443,8 @@ export const BASE_CARDS = [
     },
   },
   {
-    id: "taeguk_wuji",
-    name: "태극무극",
+    id: "taeguk_dohae",
+    name: "태극도해",
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.LEGENDARY,
     cost: 3,
