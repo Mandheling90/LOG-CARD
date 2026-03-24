@@ -82,7 +82,7 @@ export default function Card({ card, effectiveCost, onClick, disabled, small, se
         </span>
       </div>
 
-      <div className="text-gray-200 text-center text-[9px] md:text-xs leading-tight">
+      <div className="text-gray-200 text-center text-[9px] md:text-xs leading-tight whitespace-pre-line">
         {card.description}
       </div>
 

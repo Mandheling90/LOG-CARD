@@ -43,7 +43,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "6 피해. 【전환】 방어→공격 시 호신강기 +2.",
+    description: "6 피해.\n【전환】 호신강기 +2",
     effects: [{ type: "damage", value: 6, target: "single" }],
     switchBonus: {
       direction: "def_to_atk",
@@ -58,7 +58,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.COMMON,
     cost: 1,
-    description: "호신강기 4. 【전환】 공격→방어 시 태극 +1.",
+    description: "호신강기 4.\n【전환】 태극 +1",
     effects: [{ type: "block", value: 4 }],
     switchBonus: {
       direction: "atk_to_def",
@@ -98,7 +98,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "피격 시 8 반사. 【전환】 공격→방어 시 호신강기 +4.",
+    description: "피격 시 8 반사.\n【전환】 호신강기 +3",
     effects: [{ type: "counter", value: 8 }],
     switchBonus: {
       direction: "atk_to_def",
@@ -114,7 +114,7 @@ export const BASE_CARDS = [
     rarity: RARITY.UNCOMMON,
     cost: 1,
     description:
-      "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해. 【전환】 태극 +2.",
+      "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해.\n【전환】 태극 +2",
     effects: [
       {
         type: "stanceSwitch",
@@ -135,7 +135,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "호신강기 5. 적 방어 절반 제거. 【전환】 추가 피해 6.",
+    description: "호신강기 5. 적 방어 절반 제거.\n【전환】 추가 피해 6",
     effects: [
       { type: "block", value: 5 },
       { type: "enemyBlockBreak", ratio: 0.5 },
@@ -154,7 +154,7 @@ export const BASE_CARDS = [
     rarity: RARITY.UNCOMMON,
     cost: 1,
     description:
-      "호신강기 8. 태극 3 이상이면 13. 【전환】 공격→방어 시 태극 +1.",
+      "호신강기 8. 태극 3 이상이면 13.\n【전환】 태극 +1",
     effects: [
       { type: "block", value: 8, taegukBonus: { threshold: 3, value: 13 } },
     ],
@@ -171,7 +171,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "태극 전부 소모, 태극×5 피해. 【전환】 방어→공격 시 ×7.",
+    description: "태극 전부 소모, 태극×5 피해.\n【전환】 ×7로 강화",
     effects: [{ type: "finisher", multiplier: 5 }],
     switchBonus: {
       direction: "def_to_atk",
@@ -201,7 +201,7 @@ export const BASE_CARDS = [
     rarity: RARITY.UNCOMMON,
     cost: 2,
     description:
-      "현재 호신강기의 50%를 적 전체에 피해. 【전환】 공격→방어 시 호신강기 +5.",
+      "현재 호신강기의 50%를 적 전체에 피해.\n【전환】 호신강기 +5",
     effects: [{ type: "blockToDamage", ratio: 0.5 }],
     switchBonus: {
       direction: "atk_to_def",
@@ -231,7 +231,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해. 【전환】 카드 1장 뽑기.",
+      "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해.\n【전환】 카드 1장 뽑기",
     effects: [
       { type: "forceSwitch" },
       {
@@ -263,7 +263,7 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "3턴간 공력 +태극. 태극 유지.",
+    description: "태극 수치만큼 공력 증가. (3턴 후 해제)",
     effects: [{ type: "taegukStrength", duration: 3 }],
   },
   {
@@ -308,7 +308,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "전체 12 피해. 태극3 이상 시 2배. 【전환】 방어→공격 시 태극 조건 2으로 완화.",
+      "전체 12 피해. 태극3 이상 시 2배.\n【전환】 태극 조건 2로 완화",
     effects: [
       { type: "aoe", value: 12, taegukThreshold: 3, bonusMultiplier: 2 },
     ],
@@ -326,7 +326,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "호신강기 10. 남은 방어의 50%를 다음 턴 공력으로. 【전환】 태극 +2.",
+      "호신강기 10. 남은 방어의 50%를 다음 턴 공력으로.\n【전환】 태극 +2",
     effects: [
       { type: "block", value: 10 },
       {
@@ -351,7 +351,7 @@ export const BASE_CARDS = [
     rarity: RARITY.RARE,
     cost: 2,
     description:
-      "반격 6. 이번 턴 전환 시마다 반격 +4. 【전환】 공격→방어 시 반격 +3.",
+      "반격 6. 이번 턴 전환 시마다 반격 +4.\n【전환】 반격 +3",
     effects: [
       { type: "counter", value: 6 },
       { type: "counterPerSwitch", value: 4 },
@@ -369,7 +369,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "5×2 피해. 사용 후 자세 전환. 【전환】 호신강기 5.",
+    description: "5×2 피해. 사용 후 자세 전환.\n【전환】 호신강기 +5",
     effects: [{ type: "multiHit", value: 5, hits: 2 }, { type: "forceSwitch" }],
     switchBonus: {
       direction: "any",
@@ -385,7 +385,7 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.LEGENDARY,
     cost: 2,
-    description: "4×3 피해 + 적 방어도만큼 추가 피해. 【전환】 적 방어 제거.",
+    description: "4×3 피해 + 적 방어도만큼 추가 피해.\n【전환】 적 방어 제거",
     effects: [
       { type: "multiHit", value: 4, hits: 3 },
       { type: "bonusDamagePerBlock" },
@@ -430,7 +430,7 @@ export const BASE_CARDS = [
     rarity: RARITY.LEGENDARY,
     cost: 1,
     description:
-      "체력 10% 소모, 20 피해. 적 처치 시 태극 +3. 【전환】 방어→공격 시 체력 5 회복.",
+      "체력 10% 소모, 20 피해. 적 처치 시 태극 +3.\n【전환】 체력 5 회복",
     effects: [
       { type: "selfHpCostPercent", value: 10 },
       { type: "damage", value: 20 },
@@ -469,7 +469,7 @@ export const BASE_CARDS = [
     rarity: RARITY.LEGENDARY,
     cost: 2,
     description:
-      "15 피해. 태극÷2만큼 추가 타격. 【전환】 시 전체 공격으로 변경.",
+      "15 피해. 태극÷2만큼 추가 타격.\n【전환】 전체 공격으로 변경",
     effects: [
       { type: "damage", value: 15 },
       { type: "extraHitsFromTaeguk", ratio: 0.5 },
@@ -523,7 +523,7 @@ export const BASE_CARDS = [
     rarity: RARITY.LEGENDARY,
     cost: 3,
     description:
-      "태극 3 소모. 이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가. 【전환】 공격→방어 시 태극 +3.",
+      "태극 3 소모. 이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가.\n【전환】 태극 +3",
     effects: [
       { type: "consumeTaegukCost", value: 3 },
       {

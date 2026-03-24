@@ -177,7 +177,7 @@ function CardPanel({ card }) {
           비용 {card.cost}
         </span>
       </div>
-      <p className="text-gray-300 text-sm leading-relaxed">
+      <p className="text-gray-300 text-sm leading-relaxed whitespace-pre-line">
         {card.description}
       </p>
     </div>
@@ -465,7 +465,7 @@ export default function EventScreen({
                     {typeLabels[card.type] || card.type} · 비용 {card.cost}
                   </span>
                 </div>
-                <p className="text-gray-400 text-sm">{card.description}</p>
+                <p className="text-gray-400 text-sm whitespace-pre-line">{card.description}</p>
               </button>
             ))}
           </div>

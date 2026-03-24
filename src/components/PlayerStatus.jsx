@@ -36,6 +36,7 @@ function getBuffDescription(buff) {
     if (buff.onEvade.taeguk) parts.push(`회피 시 태극 +${buff.onEvade.taeguk}`)
   }
   if (buff.alwaysTriggerSwitchBonus) parts.push('모든 전환 보너스 무조건 발동')
+  if (buff.costReduction) parts.push(`기력 소모 -${buff.costReduction}`)
   if (buff.grantedStrength) parts.push(`공력 +${buff.grantedStrength} (만료 시 해제)`)
   if (buff.overflowBlock) parts.push(`남은 방어의 ${buff.overflowBlock.ratio * 100}% → 공력`)
   if (buff.storedDamage > 0) parts.push(`흡수한 피해: ${buff.storedDamage} (만료 시 공력 전환)`)

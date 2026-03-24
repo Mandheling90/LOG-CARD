@@ -108,9 +108,11 @@ export function processCardEffects(card, state, targetIndex) {
   // multiHit 추적용
   let lastMultiHitDmg = 0;
   let lastDamageValue = 0;
+  let skipRemaining = false;
 
   // 기본 효과 처리
   for (const effect of card.effects) {
+    if (skipRemaining) break;
     switch (effect.type) {
       case "damage": {
         const dmg = effect.value + (player.strength || 0);
@@ -358,9 +360,10 @@ export function processCardEffects(card, state, targetIndex) {
             grantedStrength: effect.grantedStrength || null,
             alwaysTriggerSwitchBonus: effect.alwaysTriggerSwitchBonus || null,
             invincible: effect.invincible || null,
-            storedDamage: effect.storedDamage ?? null,
+            storedDamage: effect.storedDamage != null ? effect.storedDamage : null,
             guaranteedEvade: effect.guaranteedEvade || null,
             overflowBlock: effect.overflowBlock || null,
+            costReduction: effect.costReduction || null,
           },
         ];
         logs.push(`${effect.name} 발동! (${effect.duration}턴)`);
@@ -450,11 +453,8 @@ export function processCardEffects(card, state, targetIndex) {
       case "consumeTaegukCost": {
         if (taeguk < effect.value) {
           logs.push(`${card.name} → 태극이 부족하다! (${taeguk}/${effect.value})`);
-          // 태극 부족 시 이후 효과도 모두 스킵
-          return {
-            player, enemies, taeguk, buffs, evasionCount, evasionChance, counter, stance, logs,
-            drawCount: 0, switchCount,
-          };
+          skipRemaining = true;
+          break;
         }
         taeguk -= effect.value;
         logs.push(`${card.name} → 태극 ${effect.value} 소모`);
@@ -464,7 +464,7 @@ export function processCardEffects(card, state, targetIndex) {
       case "taegukStrength": {
         const bonus = taeguk;
         if (bonus <= 0) {
-          logs.push(`${card.name} → 태극이 부족하여 효과 미미`);
+          logs.push(`${card.name} → 태극이 없어 효과 없음`);
           break;
         }
         player.strength = (player.strength || 0) + bonus;
@@ -478,7 +478,7 @@ export function processCardEffects(card, state, targetIndex) {
             grantedStrength: bonus,
           },
         ];
-        logs.push(`${card.name} → 공력 +${bonus} (${effect.duration}턴)`);
+        logs.push(`${card.name} → 태극 ${bonus}만큼 공력 +${bonus} (${effect.duration}턴)`);
         break;
       }
     }
@@ -519,6 +519,13 @@ export function processCardEffects(card, state, targetIndex) {
             return dealDamage(e, be.value);
           });
           break;
+        case "heal":
+          player.hp = Math.min(player.hp + be.value, player.maxHp);
+          logs.push(`전환 회복! → 체력 +${be.value}`);
+          break;
+        case "draw":
+          // drawCount는 이후 합산 단계에서 처리
+          break;
       }
     }
   }
@@ -557,8 +564,16 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
+  // switchBonus 드로우 합산
+  let switchBonusDraw = 0;
+  if (switched && card.switchBonus) {
+    for (const be of card.switchBonus.effects) {
+      if (be.type === "draw") switchBonusDraw += be.value;
+    }
+  }
+
   // 드로우 수 합산
-  let drawCount = perSwitchDraw;
+  let drawCount = perSwitchDraw + switchBonusDraw;
   for (const effect of card.effects) {
     if (effect.type === "draw") drawCount += effect.value;
     if ((effect.type === "consumeTaegukDraw" || effect.type === "drawFromTaeguk") && effect._drawOverride) {
@@ -677,6 +692,14 @@ export function applyBuffsOnTurnStart(state) {
       if (b.grantedStrength) {
         player.strength = Math.max(0, (player.strength || 0) - b.grantedStrength);
         logs.push(`${b.name} 만료 → 공력 -${b.grantedStrength}`);
+      }
+      // 태극유전: 남은 방어의 일정 비율을 공력으로 변환
+      if (b.overflowBlock && player.block > 0) {
+        const bonus = Math.floor(player.block * b.overflowBlock.ratio);
+        if (bonus > 0) {
+          player.strength = (player.strength || 0) + bonus;
+          logs.push(`${b.name} 만료 → 잔여 호신강기 ${player.block}의 ${b.overflowBlock.ratio * 100}% → 공력 +${bonus}`);
+        }
       }
       // 태극혜검: 흡수한 피해를 공력으로 변환
       if (b.storedDamage > 0) {
