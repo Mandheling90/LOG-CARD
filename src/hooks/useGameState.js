@@ -54,6 +54,9 @@ export function useGameState() {
   const [log, setLog] = useState([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState(null);
 
+  // 이벤트 → 전투 이월 상태
+  const [nextBattleDamage, setNextBattleDamage] = useState(0);
+
   // 전투 상태
   const [taeguk, setTaeguk] = useState(0);
   const [buffs, setBuffs] = useState([]);
@@ -195,6 +198,17 @@ export function useGameState() {
           resetBattleState();
           setEnergy(IS_DEBUG ? 10 : MAX_ENERGY);
           if (IS_DEBUG) setTaeguk(3);
+
+          // 이벤트 디버프: 다음 전투 시작 시 체력 감소
+          if (nextBattleDamage > 0) {
+            setPlayer((prev) => ({
+              ...prev,
+              hp: Math.max(1, prev.hp - nextBattleDamage),
+            }));
+            addLog(`내상이 악화되어 체력 -${nextBattleDamage}!`);
+            setNextBattleDamage(0);
+          }
+
           setPhase(GAME_PHASE.BATTLE);
 
           const names = newEnemies.map((e) => e.name).join(", ");
@@ -217,7 +231,7 @@ export function useGameState() {
           setPhase(GAME_PHASE.MAP);
       }
     },
-    [deck, addLog, resetBattleState],
+    [deck, addLog, resetBattleState, nextBattleDamage],
   );
 
   // 대상 선택 (적 클릭)
@@ -683,10 +697,12 @@ export function useGameState() {
   const resolveNonBattle = useCallback(
     (result) => {
       setPlayer((prev) => {
+        let maxHp = prev.maxHp + (result.maxHpChange || 0);
+        maxHp = Math.max(1, maxHp);
         let newHp = prev.hp + (result.hpChange || 0);
-        newHp = Math.max(0, Math.min(newHp, prev.maxHp));
+        newHp = Math.max(1, Math.min(newHp, maxHp));
         const newStr = prev.strength + (result.strengthChange || 0);
-        return { ...prev, hp: newHp, strength: newStr };
+        return { ...prev, hp: newHp, maxHp, strength: newStr };
       });
 
       if (result.taegukChange) {
@@ -696,6 +712,14 @@ export function useGameState() {
       if (result.card) {
         const cardWithUid = { ...result.card, uid: `event_${Date.now()}` };
         setDeck((prev) => [...prev, cardWithUid]);
+      }
+
+      if (result.removeCardUid) {
+        setDeck((prev) => prev.filter((c) => c.uid !== result.removeCardUid));
+      }
+
+      if (result.nextBattleDamage) {
+        setNextBattleDamage((prev) => prev + result.nextBattleDamage);
       }
 
       if (result.message) {

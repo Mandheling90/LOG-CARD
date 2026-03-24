@@ -63,7 +63,7 @@ function App() {
 
   // 기연 이벤트
   if (phase === GAME_PHASE.EVENT) {
-    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} legendaryPool={LEGENDARY_POOL} player={player} />
+    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} legendaryPool={LEGENDARY_POOL} player={player} deck={deck} />
   }
 
   // 게임 오버
