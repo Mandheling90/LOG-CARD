@@ -19,7 +19,7 @@ const EVENTS = [
         text: "봉인을 깨뜨린다 (체력 30% 소모, 전설 무공 획득)",
         effect: "legendary",
       },
-      { text: "위험하다, 돌아간다", effect: "skip" },
+      { text: "위험하다, 돌아간다", effect: "skip", message: "봉인에 손대지 않고 돌아갔다." },
     ],
     requires: "legendary",
   },
@@ -52,7 +52,7 @@ const EVENTS = [
     description: "좁은 협곡에서 산적이 통행세를 요구한다.",
     choices: [
       { text: "위압으로 쫓아낸다 (체력 -5, 공력 +1)", effect: "intimidate" },
-      { text: "돌아간다", effect: "skip" },
+      { text: "돌아간다", effect: "skip", message: "산적을 피해 돌아갔다." },
     ],
   },
   // ===== 새 이벤트 =====
@@ -66,7 +66,7 @@ const EVENTS = [
         effect: "legendary_select",
       },
       { text: "짧게 수련한다 (체력 -10, 희귀 카드 획득)", effect: "rare_card" },
-      { text: "위험하다, 나간다", effect: "skip" },
+      { text: "위험하다, 나간다", effect: "skip", message: "동굴을 빠져나왔다." },
     ],
     requires: "legendary",
   },
@@ -89,7 +89,7 @@ const EVENTS = [
         text: "검의를 깨닫는다 (초식 카드 2장 중 선택)",
         effect: "choose_chosik",
       },
-      { text: "흐름을 관찰한다 (공력 +1)", effect: "strength" },
+      { text: "흐름을 관찰한다 (공력 +1)", effect: "strength", message: "고수의 흐름에서 깨달음을 얻었다." },
     ],
   },
   {
@@ -110,7 +110,7 @@ const EVENTS = [
     choices: [
       { text: "도전한다 (체력 -40%, 전설 카드 획득)", effect: "elite_fight" },
       { text: "예를 갖춘다 (공력 +1, 체력 +10)", effect: "respect" },
-      { text: "피한다", effect: "skip" },
+      { text: "피한다", effect: "skip", message: "고수를 피해 길을 돌아갔다." },
     ],
     requires: "legendary",
   },
@@ -119,7 +119,7 @@ const EVENTS = [
     description: "강력한 기운이 느껴지는 독초를 발견했다.",
     choices: [
       { text: "복용한다 (랜덤 버프 또는 디버프)", effect: "random_potion" },
-      { text: "연단한다 (희귀 카드 획득)", effect: "rare_card" },
+      { text: "연단한다 (희귀 카드 획득)", effect: "rare_card", message: "독초를 연단하여 {card}을(를) 깨달았다!" },
     ],
   },
   {
@@ -233,7 +233,9 @@ export default function EventScreen({
     [rewardPool],
   );
 
-  function handleChoice(effect) {
+  function handleChoice(choice) {
+    const effect = choice.effect;
+    const overrideMsg = choice.message;
     let res;
     switch (effect) {
       case "legendary": {
@@ -274,7 +276,7 @@ export default function EventScreen({
       case "strength":
         res = {
           strengthChange: 1,
-          message: "노인의 조언으로 공력이 상승했다.",
+          message: overrideMsg || "노인의 조언으로 공력이 상승했다.",
         };
         break;
       case "intimidate":
@@ -285,7 +287,7 @@ export default function EventScreen({
         };
         break;
       case "skip":
-        res = { message: "조용히 지나갔다." };
+        res = { message: overrideMsg || "조용히 지나갔다." };
         break;
 
       // ===== 새 이벤트 효과 =====
@@ -306,11 +308,10 @@ export default function EventScreen({
       case "rare_card": {
         const pool = rarePool.length > 0 ? rarePool : rewardPool;
         const card = pool[Math.floor(Math.random() * pool.length)];
-        res = {
-          hpChange: -10,
-          card,
-          message: `수련으로 ${card.name}을(를) 깨달았다!`,
-        };
+        const msg = overrideMsg
+          ? overrideMsg.replace("{card}", card.name)
+          : `수련으로 ${card.name}을(를) 깨달았다!`;
+        res = { hpChange: -10, card, message: msg };
         break;
       }
       case "power_curse": {
@@ -588,7 +589,7 @@ export default function EventScreen({
           {event.choices.map((choice, i) => (
             <button
               key={i}
-              onClick={() => handleChoice(choice.effect)}
+              onClick={() => handleChoice(choice)}
               className="w-full px-4 py-3 bg-gray-800 hover:bg-gray-700 text-gray-200 rounded-lg border border-gray-600 hover:border-amber-600 transition text-sm text-left cursor-pointer"
             >
               {choice.text}
