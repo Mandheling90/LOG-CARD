@@ -119,7 +119,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해. 【전환】 태극 +2.",
+    description:
+      "공격 자세 → 호신강기 12. 방어 자세 → 적 전체 10 피해. 【전환】 태극 +2.",
     effects: [
       {
         type: "stanceSwitch",
@@ -158,7 +159,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 1,
-    description: "호신강기 8. 태극 3 이상이면 13. 【전환】 공격→방어 시 태극 +1.",
+    description:
+      "호신강기 8. 태극 3 이상이면 13. 【전환】 공격→방어 시 태극 +1.",
     effects: [
       { type: "block", value: 8, taegukBonus: { threshold: 3, value: 13 } },
     ],
@@ -204,7 +206,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.UNCOMMON,
     cost: 2,
-    description: "현재 호신강기의 50%를 적 전체에 피해. 【전환】 공격→방어 시 호신강기 +5.",
+    description:
+      "현재 호신강기의 50%를 적 전체에 피해. 【전환】 공격→방어 시 호신강기 +5.",
     effects: [{ type: "blockToDamage", ratio: 0.5 }],
     switchBonus: {
       direction: "atk_to_def",
@@ -233,7 +236,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DUAL,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해. 【전환】 카드 1장 뽑기.",
+    description:
+      "즉시 자세 전환. 3턴간 전환 시 적 전체 6 피해. 【전환】 카드 1장 뽑기.",
     effects: [
       { type: "forceSwitch" },
       {
@@ -363,7 +367,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.RARE,
     cost: 2,
-    description: "반격 6. 이번 턴 전환 시마다 반격 +4. 【전환】 공격→방어 시 반격 +3.",
+    description:
+      "반격 6. 이번 턴 전환 시마다 반격 +4. 【전환】 공격→방어 시 반격 +3.",
     effects: [
       { type: "counter", value: 6 },
       { type: "counterPerSwitch", value: 4 },
@@ -441,7 +446,8 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.LEGENDARY,
     cost: 1,
-    description: "체력 10% 소모, 20 피해. 적 처치 시 태극 +3. 【전환】 방어→공격 시 체력 5 회복.",
+    description:
+      "체력 10% 소모, 20 피해. 적 처치 시 태극 +3. 【전환】 방어→공격 시 체력 5 회복.",
     effects: [
       { type: "selfHpCostPercent", value: 10 },
       { type: "damage", value: 20 },
@@ -473,8 +479,8 @@ export const BASE_CARDS = [
     ],
   },
   {
-    id: "jinmu_sword",
-    name: "진무검결",
+    id: "taecheong_sword",
+    name: "태청검법",
     type: CARD_TYPES.CHOSIK,
     nature: CARD_NATURE.ATTACK,
     rarity: RARITY.LEGENDARY,
@@ -497,7 +503,9 @@ export const BASE_CARDS = [
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.LEGENDARY,
     cost: 3,
-    description: "체력 30% 회복. 모든 디버프 제거. 태극 수치만큼 카드 뽑기.",
+    exhaust: true,
+    description:
+      "체력 30% 회복. 모든 디버프 제거. 태극 수치만큼 카드 뽑기. (소진)",
     effects: [
       { type: "healPercent", value: 30 },
       { type: "cleanseAll" },
@@ -509,15 +517,18 @@ export const BASE_CARDS = [
     name: "양일신공",
     type: CARD_TYPES.SIMBEOP,
     rarity: RARITY.LEGENDARY,
-    cost: 2,
-    description: "3턴 동안 모든 카드의 전환 보너스가 무조건 발동.",
+    cost: 3,
+    description:
+      "태극 3 소모. 3턴 동안 모든 카드의 전환 보너스가 무조건 발동. 기력 소모 -1.",
     effects: [
+      { type: "consumeTaegukCost", value: 3 },
       {
         type: "buff",
         buffId: "unity",
         name: "양일신공",
         duration: 3,
         alwaysTriggerSwitchBonus: true,
+        costReduction: 1,
       },
     ],
   },
@@ -528,8 +539,10 @@ export const BASE_CARDS = [
     nature: CARD_NATURE.DEFENSE,
     rarity: RARITY.LEGENDARY,
     cost: 3,
-    description: "이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가. 【전환】 공격→방어 시 태극 +3.",
+    description:
+      "태극 3 소모. 이번 턴 피해를 0으로. 받은 피해만큼 다음 턴 공력 증가. 【전환】 공격→방어 시 태극 +3.",
     effects: [
+      { type: "consumeTaegukCost", value: 3 },
       {
         type: "buff",
         buffId: "immortal",
@@ -545,23 +558,23 @@ export const BASE_CARDS = [
       label: "혜검 수호! → 태극 +3",
     },
   },
-  {
-    id: "formless",
-    name: "무형무상",
-    type: CARD_TYPES.BOBEOP,
-    rarity: RARITY.LEGENDARY,
-    cost: 2,
-    description: "2턴간 매 턴 호신강기 +10, 반격 8, 태극 +1.",
-    effects: [
-      {
-        type: "buff",
-        buffId: "formless",
-        name: "무형무상",
-        duration: 2,
-        perTurn: { block: 10, counter: 8, taeguk: 1 },
-      },
-    ],
-  },
+  // {
+  //   id: "formless",
+  //   name: "무형무상",
+  //   type: CARD_TYPES.BOBEOP,
+  //   rarity: RARITY.LEGENDARY,
+  //   cost: 2,
+  //   description: "2턴간 매 턴 호신강기 +10, 반격 8, 태극 +1.",
+  //   effects: [
+  //     {
+  //       type: "buff",
+  //       buffId: "formless",
+  //       name: "무형무상",
+  //       duration: 2,
+  //       perTurn: { block: 10, counter: 8, taeguk: 1 },
+  //     },
+  //   ],
+  // },
 ];
 
 export const DEBUG_CARD = {

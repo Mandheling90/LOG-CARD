@@ -37,10 +37,11 @@ const rarityName = {
   legendary: { color: 'text-amber-300', costBg: 'bg-amber-400', costBorder: 'ring-2 ring-amber-300' },
 }
 
-export default function Card({ card, onClick, disabled, small, selected, mobile }) {
+export default function Card({ card, effectiveCost, onClick, disabled, small, selected, mobile }) {
   const colors = typeColors[card.type] || typeColors.chosik
   const glow = rarityGlow[card.rarity]
   const rarity = rarityName[card.rarity] || rarityName.common
+  const displayCost = effectiveCost != null ? effectiveCost : card.cost
   const canPlay = !disabled
   const nature = card.nature ? natureAccent[card.nature] : null
 
@@ -70,8 +71,8 @@ export default function Card({ card, onClick, disabled, small, selected, mobile 
 
       <div className="flex justify-between items-start w-full">
         <span className={`font-bold truncate text-[10px] md:text-sm pl-1 ${rarity.color}`}>{card.name}</span>
-        <span className={`flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full ${rarity.costBg} ${rarity.costBorder} text-black font-bold text-[10px] md:text-xs shrink-0`}>
-          {card.cost}
+        <span className={`flex items-center justify-center w-5 h-5 md:w-6 md:h-6 rounded-full ${displayCost < card.cost ? 'bg-green-400 ring-2 ring-green-300' : `${rarity.costBg} ${rarity.costBorder}`} text-black font-bold text-[10px] md:text-xs shrink-0`}>
+          {displayCost}
         </span>
       </div>
 

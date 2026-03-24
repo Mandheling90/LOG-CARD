@@ -21,6 +21,7 @@ function App() {
     startGame, selectCard, selectEnemy, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
     battleEffect, clearBattleEffect, toast,
+    getEffectiveCost, canPlayCard,
   } = useGameState()
 
   // 타이틀
@@ -205,8 +206,9 @@ function App() {
             <div key={card.uid} className="shrink-0">
               <Card
                 card={card}
+                effectiveCost={getEffectiveCost(card)}
                 onClick={() => !isEnemyTurn && selectCard(i)}
-                disabled={card.cost > energy || isEnemyTurn}
+                disabled={!canPlayCard(card) || isEnemyTurn}
                 mobile
               />
             </div>

@@ -240,12 +240,32 @@ export function useGameState() {
     [phase, isEnemyTurn],
   );
 
+  // 버프 기반 코스트 감소 계산
+  const getEffectiveCost = useCallback(
+    (card) => {
+      const reduction = buffs.reduce((sum, b) => sum + (b.costReduction || 0), 0);
+      return Math.max(0, card.cost - reduction);
+    },
+    [buffs],
+  );
+
+  // 카드 사용 가능 여부 (에너지 + 태극 조건)
+  const canPlayCard = useCallback(
+    (card) => {
+      if (getEffectiveCost(card) > energy) return false;
+      const taegukCost = card.effects?.find((e) => e.type === "consumeTaegukCost");
+      if (taegukCost && taeguk < taegukCost.value) return false;
+      return true;
+    },
+    [energy, taeguk, getEffectiveCost],
+  );
+
   // 카드 선택 → 즉시 발동
   const selectCard = useCallback(
     (cardIndex) => {
       if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return;
       const card = hand[cardIndex];
-      if (!card || card.cost > energy) return;
+      if (!card || !canPlayCard(card)) return;
 
       if (cardNeedsTarget(card)) {
         // 적이 1마리면 자동 타겟
@@ -265,14 +285,15 @@ export function useGameState() {
         playCardOnTarget(cardIndex, null);
       }
     },
-    [phase, isEnemyTurn, hand, energy, selectedEnemyIndex, enemies, showToast],
+    [phase, isEnemyTurn, hand, selectedEnemyIndex, enemies, showToast, canPlayCard],
   );
 
   const playCardOnTarget = useCallback(
     (cardIndex, targetIndex) => {
       if (phase !== GAME_PHASE.BATTLE) return;
       const card = hand[cardIndex];
-      if (!card || card.cost > energy) return;
+      if (!card || !canPlayCard(card)) return;
+      const cost = getEffectiveCost(card);
 
       const result = processCardEffects(
         card,
@@ -307,11 +328,14 @@ export function useGameState() {
       setCounter(result.counter);
       setStance(result.stance);
       setSwitchCount(result.switchCount || 0);
-      setEnergy((prev) => prev - card.cost);
+      setEnergy((prev) => prev - cost);
 
       let newHand = hand.filter((_, i) => i !== cardIndex);
       let currentDrawPile = drawPile;
-      let currentDiscardPile = [...discardPile, card];
+      // exhaust 카드는 버린 패에 넣지 않고 소진 (전투 중 재사용 불가)
+      let currentDiscardPile = card.exhaust
+        ? [...discardPile]
+        : [...discardPile, card];
 
       if (result.drawCount > 0) {
         const {
@@ -375,6 +399,8 @@ export function useGameState() {
       currentFloor,
       addLog,
       addLogs,
+      getEffectiveCost,
+      canPlayCard,
     ],
   );
 
@@ -724,5 +750,7 @@ export function useGameState() {
     resolveNonBattle,
     spendTaeguk,
     clearBattleEffect,
+    getEffectiveCost,
+    canPlayCard,
   };
 }
