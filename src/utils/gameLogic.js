@@ -523,6 +523,11 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
+  // 보법 카드: 중립 자세일 때만 방어 자세로 전환 (전환 보너스 없음)
+  if (card.type === "bobeop" && initialStance === null) {
+    stance = "defense";
+  }
+
   // 자세 전환 감지 → 태극 +1 + switchCount 증가 + perSwitch 버프 발동
   let perSwitchDraw = 0;
   if (initialStance !== null && stance !== initialStance) {
