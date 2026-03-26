@@ -8,6 +8,7 @@ import {
   BASE_CARDS,
 } from "../data/cards";
 import { getEnemiesForFloor, getDebugEnemies } from "../data/enemies";
+import { ARTIFACTS } from "../data/artifacts";
 import { generateMap, NODE_TYPES, parseNodeId } from "../data/mapGenerator";
 import {
   shuffleArray,
@@ -56,6 +57,13 @@ export function useGameState() {
 
   // 이벤트 → 전투 이월 상태
   const [nextBattleDamage, setNextBattleDamage] = useState(0);
+
+  // 기물 (아티팩트)
+  const [artifacts, setArtifacts] = useState([]);
+  const [artifactSwitchTotal, setArtifactSwitchTotal] = useState(0);
+  const [cardsPlayedThisTurn, setCardsPlayedThisTurn] = useState(0);
+
+  const hasArtifact = useCallback((id) => artifacts.includes(id), [artifacts]);
 
   // 전투 상태
   const [taeguk, setTaeguk] = useState(0);
@@ -107,6 +115,8 @@ export function useGameState() {
     setSwitchCount(0);
     setSelectedCardIndex(null);
     setSelectedEnemyIndex(null);
+    setArtifactSwitchTotal(0);
+    setCardsPlayedThisTurn(0);
   }, []);
 
   // 선택 가능한 다음 노드 계산
@@ -133,6 +143,12 @@ export function useGameState() {
     setDiscardPile([]);
     setLog([]);
     resetBattleState();
+    if (IS_DEBUG) {
+      const shuffled = [...ARTIFACTS].sort(() => Math.random() - 0.5);
+      setArtifacts(shuffled.slice(0, 3).map((a) => a.id));
+    } else {
+      setArtifacts([]);
+    }
 
     // 맵 초기화
     setChapter(1);
@@ -289,13 +305,19 @@ export function useGameState() {
       if (!card || !canPlayCard(card)) return;
       const cost = getEffectiveCost(card);
 
+      // 기물: 파손된 도경 - 체력 50% 이하 시 태극 획득 2배
+      let effectBuffs = [...buffs];
+      if (hasArtifact("broken_scripture") && player.hp <= player.maxHp * 0.5) {
+        effectBuffs = [...effectBuffs, { taegukMultiplier: 2 }];
+      }
+
       const result = processCardEffects(
         card,
         {
           player,
           enemies,
           taeguk,
-          buffs,
+          buffs: effectBuffs,
           evasionCount,
           evasionChance,
           counter,
@@ -305,6 +327,27 @@ export function useGameState() {
         },
         targetIndex,
       );
+
+      // 기물: 경공 비급 조각 - 보법 사용 시 추가 드로우
+      if (hasArtifact("lightfoot_scrap") && card.type === "bobeop") {
+        result.drawCount = (result.drawCount || 0) + 1;
+        result.logs.push("경공 비급 조각 → 카드 1장 추가!");
+      }
+
+      // 기물: 음양패 - 전환 5회마다 공력 +1
+      const prevStance = stance;
+      const newStance = result.stance;
+      if (hasArtifact("yin_yang_token") && prevStance && newStance && prevStance !== newStance) {
+        const newTotal = artifactSwitchTotal + 1;
+        setArtifactSwitchTotal(newTotal);
+        if (newTotal % 5 === 0) {
+          result.player = { ...result.player, strength: (result.player.strength || 0) + 1 };
+          result.logs.push("음양패 → 전환 5회 달성! 공력 +1");
+        }
+      }
+
+      // 카드 사용 카운트 (목탁용)
+      setCardsPlayedThisTurn((prev) => prev + 1);
 
       // 총 데미지 계산 (HP + block 감소량)
       const totalDamage = enemies.reduce((sum, orig, i) => {
@@ -423,6 +466,8 @@ export function useGameState() {
       addLogs,
       getEffectiveCost,
       canPlayCard,
+      hasArtifact,
+      artifactSwitchTotal,
     ],
   );
 
@@ -459,6 +504,17 @@ export function useGameState() {
     const alive = enemies.filter((e) => e.hp > 0);
     if (alive.length === 0) return;
 
+    // 기물: 낡은 주머니 - 손패 2장 이하면 다음턴 추가 드로우
+    const pouchBonus = hasArtifact("old_pouch") && hand.length <= 2 ? 2 : 0;
+    if (pouchBonus > 0) addLog("낡은 주머니 → 다음 턴 카드 2장 추가!");
+
+    // 기물: 낡은 목탁 - 카드 3장 미만 사용 시 체력 +5
+    let moktakHeal = 0;
+    if (hasArtifact("old_moktak") && cardsPlayedThisTurn < 3) {
+      moktakHeal = 5;
+      addLog("낡은 목탁 → 체력 +5 회복!");
+    }
+
     setSelectedCardIndex(null);
     setIsEnemyTurn(true);
     enemyTurnTimers.current.forEach((t) => clearTimeout(t));
@@ -466,6 +522,9 @@ export function useGameState() {
 
     // ── 1. 적 행동 미리 계산 ──
     let cp = { ...player };
+    if (moktakHeal > 0) {
+      cp.hp = Math.min(cp.maxHp, cp.hp + moktakHeal);
+    }
     let ce = enemies.map((e) => ({ ...e }));
     let cEvCount = evasionCount;
     let cEvChance = evasionChance;
@@ -694,6 +753,18 @@ export function useGameState() {
         return;
       }
 
+      // 기물: 혈염석 - 플레이어가 체력을 잃었으면 다음 턴 공력 +2
+      if (hasArtifact("blood_stone") && fp.hp < player.hp) {
+        fb = [...fb, {
+          buffId: "blood_stone_" + Date.now(),
+          name: "혈염석",
+          duration: 2,
+          grantedStrength: 2,
+        }];
+        fp = { ...fp, strength: (fp.strength || 0) + 2 };
+        finishLogs.push("혈염석 → 피를 흘려 공력 +2!");
+      }
+
       const newTurn = turn + 1;
       const buffResult = applyBuffsOnTurnStart({
         player: fp,
@@ -707,12 +778,18 @@ export function useGameState() {
       fb = buffResult.buffs;
       finishLogs.push(...buffResult.logs);
 
+      // 기물: 청명등 - 디버프(피해 증가 버프) 있으면 태극 +1
+      if (hasArtifact("clear_lantern") && fb.some(b => b.damageReceiveMultiplier && b.damageReceiveMultiplier > 1)) {
+        ft += 1;
+        finishLogs.push("청명등 → 디버프 상태에서 태극 +1!");
+      }
+
       const allDiscard = [...discardPile, ...hand];
       const {
         drawn,
         drawPile: newDrawPile,
         discardPile: newDiscardPile,
-      } = drawCards(drawPile, allDiscard, HAND_SIZE);
+      } = drawCards(drawPile, allDiscard, HAND_SIZE + pouchBonus);
 
       const MAX_TAEGUK_CARRY = 3;
       if (ft > MAX_TAEGUK_CARRY) {
@@ -737,6 +814,7 @@ export function useGameState() {
       setCounter(0);
       setStance(null);
       setSwitchCount(0);
+      setCardsPlayedThisTurn(0);
       setIsEnemyTurn(false);
       addLogs(finishLogs);
     }, finishDelay);
@@ -758,6 +836,9 @@ export function useGameState() {
     buffs,
     addLogs,
     addLog,
+    hasArtifact,
+    cardsPlayedThisTurn,
+    artifactSwitchTotal,
   ]);
 
   const clearBattleEffect = useCallback(() => setBattleEffect(null), []);
@@ -812,6 +893,10 @@ export function useGameState() {
         setNextBattleDamage((prev) => prev + result.nextBattleDamage);
       }
 
+      if (result.artifact) {
+        setArtifacts((prev) => prev.includes(result.artifact.id) ? prev : [...prev, result.artifact.id]);
+      }
+
       if (result.message) {
         addLog(result.message);
       }
@@ -839,6 +924,7 @@ export function useGameState() {
     rewardCards,
     log,
     deck,
+    artifacts,
     selectedEnemyIndex,
     taeguk,
     buffs,

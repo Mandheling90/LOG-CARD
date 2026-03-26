@@ -43,7 +43,9 @@ function getBuffDescription(buff) {
   return parts.length > 0 ? parts.join(' / ') : buff.name
 }
 
-export default function PlayerStatus({ player, energy, drawPile, discardPile, taeguk, buffs, evasionCount, counter, stance }) {
+import { ARTIFACTS } from '../data/artifacts'
+
+export default function PlayerStatus({ player, energy, drawPile, discardPile, taeguk, buffs, evasionCount, counter, stance, artifacts = [] }) {
   const hpPercent = Math.max(0, (player.hp / player.maxHp) * 100)
 
   const stanceLabel = stance === 'attack' ? '⚔️ 공' : stance === 'defense' ? '🛡️ 방' : '☯️ 중'
@@ -136,6 +138,20 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
             ))}
           </div>
         )}
+        {/* 4행: 기물 */}
+        {artifacts.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 mt-1.5">
+            {artifacts.map(id => {
+              const a = ARTIFACTS.find(x => x.id === id)
+              if (!a) return null
+              return (
+                <Tooltip key={id} text={`${a.name}: ${a.description}`}>
+                  <div className="text-xs bg-gray-700/60 px-1.5 py-0.5 rounded cursor-help">{a.emoji}</div>
+                </Tooltip>
+              )
+            })}
+          </div>
+        )}
       </div>
 
       {/* ── 데스크톱 레이아웃 (기존) ── */}
@@ -199,6 +215,20 @@ export default function PlayerStatus({ player, energy, drawPile, discardPile, ta
                 </div>
               </Tooltip>
             ))}
+          </div>
+        )}
+
+        {artifacts.length > 0 && (
+          <div className="flex flex-wrap gap-1.5 justify-center">
+            {artifacts.map(id => {
+              const a = ARTIFACTS.find(x => x.id === id)
+              if (!a) return null
+              return (
+                <Tooltip key={id} text={`${a.name}: ${a.description}`}>
+                  <div className="text-sm bg-gray-700/60 px-1.5 py-0.5 rounded cursor-help">{a.emoji}</div>
+                </Tooltip>
+              )
+            })}
           </div>
         )}
 

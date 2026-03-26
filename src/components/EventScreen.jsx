@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { ARTIFACTS } from "../data/artifacts";
 
 function shuffleArray(arr) {
   const a = [...arr];
@@ -136,6 +137,25 @@ const EVENTS = [
       },
     ],
   },
+  // ===== 기물 이벤트 =====
+  {
+    title: "행상인",
+    description: "산길에서 보따리를 짊어진 행상인을 만났다. 진귀한 물건을 하나 보여준다.",
+    choices: [
+      { text: "물건을 받는다 (기물 획득)", effect: "artifact" },
+      { text: "정중히 거절한다", effect: "skip", message: "행상인과 인사를 나누고 헤어졌다." },
+    ],
+    requires: "artifact",
+  },
+  {
+    title: "폐허의 보물상자",
+    description: "무너진 객잔 잔해 속에서 오래된 상자를 발견했다.",
+    choices: [
+      { text: "상자를 연다 (체력 -5, 기물 획득)", effect: "artifact_cost" },
+      { text: "지나친다", effect: "skip", message: "함부로 손대지 않고 지나갔다." },
+    ],
+    requires: "artifact",
+  },
 ];
 
 const rarityColors = {
@@ -190,6 +210,7 @@ export default function EventScreen({
   legendaryPool,
   player,
   deck,
+  artifacts = [],
 }) {
   const [result, setResult] = useState(null);
   // 카드 선택 모드: { cards, pendingResult }
@@ -201,13 +222,18 @@ export default function EventScreen({
   const starterIds = ["taichi_strike", "inner_guard", "cloud_step"];
   const removableDeck = deck?.filter((c) => !starterIds.includes(c.id)) || [];
 
+  const availableArtifacts = useMemo(() => {
+    return ARTIFACTS.filter((a) => !artifacts.includes(a.id));
+  }, [artifacts]);
+
   const available = useMemo(() => {
     return EVENTS.filter((e) => {
       if (e.requires === "legendary" && !hasLegendary) return false;
       if (e.requires === "deck" && removableDeck.length === 0) return false;
+      if (e.requires === "artifact" && availableArtifacts.length === 0) return false;
       return true;
     });
-  }, [hasLegendary, removableDeck.length]);
+  }, [hasLegendary, removableDeck.length, availableArtifacts.length]);
 
   const [event] = useState(
     () => available[Math.floor(Math.random() * available.length)],
@@ -412,6 +438,31 @@ export default function EventScreen({
         });
         return;
       }
+      case "artifact": {
+        if (availableArtifacts.length === 0) {
+          res = { message: "특별한 물건은 없었다..." };
+          break;
+        }
+        const artifact = availableArtifacts[Math.floor(Math.random() * availableArtifacts.length)];
+        res = {
+          artifact,
+          message: `${artifact.emoji} ${artifact.name}을(를) 획득했다! (${artifact.description})`,
+        };
+        break;
+      }
+      case "artifact_cost": {
+        if (availableArtifacts.length === 0) {
+          res = { message: "상자 안은 비어있었다..." };
+          break;
+        }
+        const artifact = availableArtifacts[Math.floor(Math.random() * availableArtifacts.length)];
+        res = {
+          hpChange: -5,
+          artifact,
+          message: `${artifact.emoji} ${artifact.name}을(를) 발견했다! (${artifact.description})`,
+        };
+        break;
+      }
       case "choose_attack": {
         const pool = attackChosikPool.length > 0 ? attackChosikPool : chosikPool;
         if (pool.length === 0) {
@@ -524,7 +575,7 @@ export default function EventScreen({
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">
         <div className="bg-gray-900 border border-gray-700 rounded-2xl p-8 max-w-md flex flex-col items-center gap-6">
           <div className="text-4xl">
-            {card ? "📜" : result.removeCardUid ? "🗑️" : "✅"}
+            {result.artifact ? result.artifact.emoji : card ? "📜" : result.removeCardUid ? "🗑️" : "✅"}
           </div>
           <p className="text-gray-200 text-center text-lg font-bold">
             {result.message}

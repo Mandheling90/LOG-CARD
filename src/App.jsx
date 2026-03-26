@@ -16,7 +16,7 @@ import { REWARD_POOL, LEGENDARY_POOL } from './data/cards'
 function App() {
   const {
     phase, player, energy, hand, drawPile, discardPile,
-    enemies, enemyIntents, rewardCards, log, deck,
+    enemies, enemyIntents, rewardCards, log, deck, artifacts,
     selectedEnemyIndex, taeguk, buffs, evasionCount, counter, stance,
     isEnemyTurn, activeEnemyIndex, activeEnemyAction, activeEnemyDamage,
     mapFloors, currentFloor, visitedNodes, availableNodes,
@@ -106,7 +106,7 @@ function App() {
 
   // 기연 이벤트
   if (phase === GAME_PHASE.EVENT) {
-    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} legendaryPool={LEGENDARY_POOL} player={player} deck={deck} />
+    return <EventScreen onResolve={resolveNonBattle} rewardPool={REWARD_POOL} legendaryPool={LEGENDARY_POOL} player={player} deck={deck} artifacts={artifacts} />
   }
 
   // 게임 오버
@@ -181,6 +181,7 @@ function App() {
             evasionCount={evasionCount}
             counter={counter}
             stance={stance}
+            artifacts={artifacts}
           />
         </div>
 
