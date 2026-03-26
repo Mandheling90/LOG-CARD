@@ -108,6 +108,23 @@ export function getBossForChapter(chapter) {
       },
     ];
   }
+  if (chapter === 2) {
+    return [
+      createEnemy({
+        id: "demon_lord_boss",
+        name: "천마",
+        emoji: "😈",
+        hp: 200,
+        actions: [
+          { type: "attack", damage: 18 },
+          { type: "attack", damage: 12 },
+          { type: "attack", damage: 25 },
+          { type: "defend", block: 15 },
+          { type: "attack", damage: 20 },
+        ],
+      }),
+    ];
+  }
   return null;
 }
 

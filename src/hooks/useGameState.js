@@ -58,6 +58,7 @@ export function useGameState() {
   const [enemyIntents, setEnemyIntents] = useState([]);
   const [turn, setTurn] = useState(0);
   const [rewardCards, setRewardCards] = useState([]);
+  const [bossCleared, setBossCleared] = useState(false);
   const [log, setLog] = useState([]);
   const [selectedCardIndex, setSelectedCardIndex] = useState(null);
 
@@ -467,7 +468,8 @@ export function useGameState() {
           // 최종장 보스 클리어 → 승리
           setPhase(GAME_PHASE.VICTORY);
         } else if (isBossFloor) {
-          // 장 보스 클리어 → 보스 보상 + 일반 보상
+          // 장 보스 클리어 → 보스 보상 + 다음 장 진행
+          setBossCleared(true);
           const bossEnemy = result.enemies.find((e) => e.bossId);
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
@@ -720,7 +722,7 @@ export function useGameState() {
             },
           ];
           stepLogs.push(
-            `${enemy.name}: "그러고도 정파의 고수냐!" → 약점 노출! (받는 피해 50% 증가, 3턴)`,
+            `${enemy.name}: "그러고도 정파의 고수냐!" → 내공을 담은 꾸짖음! (받는 피해 50% 증가, 3턴)`,
           );
         } else {
           // 방치 → 회복 + 소규모 버프
@@ -991,7 +993,7 @@ export function useGameState() {
     addLog("태극 3 소모 → 기력 +1");
   }, [taeguk, addLog]);
 
-  // 보상 선택 후 맵으로
+  // 보상 선택 후 맵으로 (보스 클리어 시 다음 장)
   const selectReward = useCallback(
     (card) => {
       if (card) {
@@ -1000,9 +1002,21 @@ export function useGameState() {
       } else {
         setDeck((prev) => prev.filter((c) => c.id !== "sihye"));
       }
+
+      if (bossCleared) {
+        const nextChapter = chapter + 1;
+        const newMap = generateMap(FLOORS_PER_CHAPTER);
+        setChapter(nextChapter);
+        setMapFloors(newMap);
+        setCurrentFloor(0);
+        setVisitedNodes(["0-0"]);
+        setCurrentNodeId("0-0");
+        setBossCleared(false);
+        addLog(`제${nextChapter}장 — 새로운 여정이 시작된다!`);
+      }
       setPhase(GAME_PHASE.MAP);
     },
-    [addLog],
+    [addLog, bossCleared, chapter],
   );
 
   // 휴식/이벤트 결과 처리 후 맵으로
