@@ -66,6 +66,7 @@ export function useGameState() {
   const [stance, setStance] = useState(null);
   const [switchCount, setSwitchCount] = useState(0);
   const [battleEffect, setBattleEffect] = useState(null);
+  const [discardEffect, setDiscardEffect] = useState(null);
 
   // 적 턴 애니메이션 상태
   const [isEnemyTurn, setIsEnemyTurn] = useState(false);
@@ -82,6 +83,9 @@ export function useGameState() {
   const [currentFloor, setCurrentFloor] = useState(0);
   const [visitedNodes, setVisitedNodes] = useState([]);
   const [currentNodeId, setCurrentNodeId] = useState(null);
+  const [chapter, setChapter] = useState(1);
+  const TOTAL_CHAPTERS = 3;
+  const FLOORS_PER_CHAPTER = 5;
 
   const addLog = useCallback((msg) => {
     setLog((prev) => [...prev.slice(-29), msg]);
@@ -118,7 +122,7 @@ export function useGameState() {
 
   const startGame = useCallback(() => {
     const starterDeck = createStarterDeck();
-    const map = generateMap(10);
+    const map = generateMap(FLOORS_PER_CHAPTER);
 
     setDeck(starterDeck);
     setPlayer(initialPlayerState());
@@ -130,13 +134,15 @@ export function useGameState() {
     resetBattleState();
 
     // 맵 초기화
+    setChapter(1);
     setMapFloors(map);
     setCurrentFloor(0);
     setVisitedNodes(["0-0"]);
     setCurrentNodeId("0-0");
+    setNextBattleDamage(0);
 
     setPhase(GAME_PHASE.MAP);
-    addLog("강호로 출사한다!");
+    addLog("제1장 — 강호로 출사한다!");
   }, [addLog, resetBattleState]);
 
   // 맵에서 노드 선택
@@ -275,34 +281,6 @@ export function useGameState() {
     [energy, taeguk, getEffectiveCost],
   );
 
-  // 카드 선택 → 즉시 발동
-  const selectCard = useCallback(
-    (cardIndex) => {
-      if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return;
-      const card = hand[cardIndex];
-      if (!card || !canPlayCard(card)) return;
-
-      if (cardNeedsTarget(card)) {
-        // 적이 1마리면 자동 타겟
-        const aliveEnemies = enemies
-          .map((e, i) => ({ ...e, idx: i }))
-          .filter((e) => e.hp > 0);
-        let target = selectedEnemyIndex;
-        if (aliveEnemies.length === 1) {
-          target = aliveEnemies[0].idx;
-        }
-        if (target === null || enemies[target]?.hp <= 0) {
-          showToast("대상을 먼저 선택하시오!");
-          return;
-        }
-        playCardOnTarget(cardIndex, target);
-      } else {
-        playCardOnTarget(cardIndex, null);
-      }
-    },
-    [phase, isEnemyTurn, hand, selectedEnemyIndex, enemies, showToast, canPlayCard],
-  );
-
   const playCardOnTarget = useCallback(
     (cardIndex, targetIndex) => {
       if (phase !== GAME_PHASE.BATTLE) return;
@@ -331,6 +309,13 @@ export function useGameState() {
         type: card.type,
         nature: card.nature || null,
         name: card.name,
+        id: Date.now(),
+      });
+
+      setDiscardEffect({
+        name: card.name,
+        type: card.type,
+        nature: card.nature || null,
         id: Date.now(),
       });
 
@@ -376,21 +361,38 @@ export function useGameState() {
       const alive = result.enemies.filter((e) => e.hp > 0);
       if (alive.length === 0) {
         addLog("적을 모두 제압했다!");
-        // 보스(10층) 클리어 시 승리
-        if (currentFloor >= 10) {
+        const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
+        if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
+          // 최종장 보스 클리어 → 승리
           setPhase(GAME_PHASE.VICTORY);
-        } else {
-          // 7층 이상에서 전설 카드 1장 포함 가능
+        } else if (isBossFloor) {
+          // 장 보스 클리어 → 다음 장으로 전환 (보상 후)
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
-          if (currentFloor >= 7 && LEGENDARY_POOL.length > 0) {
-            const legendaryPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = legendaryPool[0];
+          if (LEGENDARY_POOL.length > 0) {
+            const lPool = shuffleArray(LEGENDARY_POOL);
+            rewards[2] = lPool[0];
           }
           setRewardCards(
             rewards.map((c, i) => ({
               ...c,
-              uid: `reward_${currentFloor}_${i}`,
+              uid: `reward_ch${chapter}_boss_${i}`,
+            })),
+          );
+          setPhase(GAME_PHASE.REWARD);
+        } else {
+          // 일반 전투 보상
+          let pool = shuffleArray(REWARD_POOL);
+          const rewards = pool.slice(0, 3);
+          // 장의 후반부(3층 이상)에서 전설 카드 포함 가능
+          if (currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) && LEGENDARY_POOL.length > 0) {
+            const lPool = shuffleArray(LEGENDARY_POOL);
+            rewards[2] = lPool[0];
+          }
+          setRewardCards(
+            rewards.map((c, i) => ({
+              ...c,
+              uid: `reward_${chapter}_${currentFloor}_${i}`,
             })),
           );
           setPhase(GAME_PHASE.REWARD);
@@ -409,14 +411,44 @@ export function useGameState() {
       evasionChance,
       counter,
       stance,
+      switchCount,
       drawPile,
       discardPile,
       currentFloor,
+      chapter,
       addLog,
       addLogs,
       getEffectiveCost,
       canPlayCard,
     ],
+  );
+
+  // 카드 선택 → 즉시 발동
+  const selectCard = useCallback(
+    (cardIndex) => {
+      if (phase !== GAME_PHASE.BATTLE || isEnemyTurn) return;
+      const card = hand[cardIndex];
+      if (!card || !canPlayCard(card)) return;
+
+      if (cardNeedsTarget(card)) {
+        // 적이 1마리면 자동 타겟
+        const aliveEnemies = enemies
+          .map((e, i) => ({ ...e, idx: i }))
+          .filter((e) => e.hp > 0);
+        let target = selectedEnemyIndex;
+        if (aliveEnemies.length === 1) {
+          target = aliveEnemies[0].idx;
+        }
+        if (target === null || enemies[target]?.hp <= 0) {
+          showToast("대상을 먼저 선택하시오!");
+          return;
+        }
+        playCardOnTarget(cardIndex, target);
+      } else {
+        playCardOnTarget(cardIndex, null);
+      }
+    },
+    [phase, isEnemyTurn, hand, selectedEnemyIndex, enemies, showToast, canPlayCard, playCardOnTarget],
   );
 
   const endTurn = useCallback(() => {
@@ -672,6 +704,7 @@ export function useGameState() {
   ]);
 
   const clearBattleEffect = useCallback(() => setBattleEffect(null), []);
+  const clearDiscardEffect = useCallback(() => setDiscardEffect(null), []);
 
   // 태극 3 소모 → 기력 +1
   const spendTaeguk = useCallback(() => {
@@ -756,6 +789,7 @@ export function useGameState() {
     counter,
     stance,
     battleEffect,
+    discardEffect,
     toast,
     isEnemyTurn,
     activeEnemyIndex,
@@ -775,6 +809,7 @@ export function useGameState() {
     resolveNonBattle,
     spendTaeguk,
     clearBattleEffect,
+    clearDiscardEffect,
     getEffectiveCost,
     canPlayCard,
   };

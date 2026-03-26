@@ -21,10 +21,11 @@ export function getNodeInfo(type) {
 }
 
 function pickNodeType(floor, col, totalFloors) {
-  // 5층, 10층은 보스
-  if (floor === 5 || floor === totalFloors) return NODE_TYPES.BOSS
-  // 3층, 7층에 정예 배치 가능
-  if ((floor === 3 || floor === 7) && Math.random() < 0.5) return NODE_TYPES.ELITE
+  // 마지막 층은 보스
+  if (floor === totalFloors) return NODE_TYPES.BOSS
+  // 중간 지점에 정예 배치 가능
+  const midFloor = Math.ceil(totalFloors / 2)
+  if (floor === midFloor && Math.random() < 0.5) return NODE_TYPES.ELITE
   // 나머지는 확률로 배분
   const r = Math.random()
   if (r < 0.50) return NODE_TYPES.BATTLE

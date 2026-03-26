@@ -48,7 +48,7 @@ export const BASE_CARDS = [
     switchBonus: {
       direction: "def_to_atk",
       effects: [{ type: "block", value: 2 }],
-      label: "태극 흐름! → 호신강기 +1",
+      label: "태극 흐름! → 호신강기 +2",
     },
   },
   {
@@ -118,7 +118,7 @@ export const BASE_CARDS = [
     effects: [
       {
         type: "stanceSwitch",
-        attackEffect: { type: "block", value: 10 },
+        attackEffect: { type: "block", value: 12 },
         defenseEffect: { type: "aoe", value: 10 },
       },
     ],

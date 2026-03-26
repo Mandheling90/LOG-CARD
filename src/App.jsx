@@ -1,3 +1,4 @@
+import { useState, useEffect, useRef } from 'react'
 import { useGameState, GAME_PHASE } from './hooks/useGameState'
 import Card from './components/Card'
 import EnemyDisplay from './components/EnemyDisplay'
@@ -11,6 +12,7 @@ import BattleEffect from './components/BattleEffect'
 import Tooltip from './components/Tooltip'
 import { REWARD_POOL, LEGENDARY_POOL } from './data/cards'
 
+
 function App() {
   const {
     phase, player, energy, hand, drawPile, discardPile,
@@ -23,6 +25,37 @@ function App() {
     battleEffect, clearBattleEffect, toast,
     getEffectiveCost, canPlayCard,
   } = useGameState()
+
+  // 드로우 애니메이션: 핸드의 카드 uid 추적하여 새 카드만 애니메이션
+  const prevHandRef = useRef(new Set())
+  const [drawAnimCards, setDrawAnimCards] = useState(new Set())
+
+  useEffect(() => {
+    const prevUids = prevHandRef.current
+    const newUids = new Set(hand.map(c => c.uid))
+    const freshCards = new Set()
+    for (const uid of newUids) {
+      if (!prevUids.has(uid)) freshCards.add(uid)
+    }
+    prevHandRef.current = newUids
+    if (freshCards.size > 0) {
+      setDrawAnimCards(freshCards)
+      const timer = setTimeout(() => setDrawAnimCards(new Set()), 800)
+      return () => clearTimeout(timer)
+    }
+  }, [hand])
+
+  // 공격 시 화면 흔들림
+  const [shakeKey, setShakeKey] = useState(null)
+  useEffect(() => {
+    if (!battleEffect) return
+    const isAttack = battleEffect.nature === 'attack' || battleEffect.nature === 'dual'
+    if (isAttack) {
+      setShakeKey(battleEffect.id)
+      const timer = setTimeout(() => setShakeKey(null), 350)
+      return () => clearTimeout(timer)
+    }
+  }, [battleEffect])
 
   // 타이틀
   if (phase === GAME_PHASE.TITLE) {
@@ -103,7 +136,7 @@ function App() {
 
   // 전투 화면
   return (
-    <div className="h-[100dvh] bg-gray-950 flex flex-col overflow-hidden">
+    <div key={shakeKey} className={`h-[100dvh] bg-gray-950 flex flex-col overflow-hidden ${shakeKey ? 'animate-screen-shake' : ''}`}>
       {/* Header */}
       <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
         <Tooltip text="현재 층수: 10층이 최종 보스">
@@ -200,20 +233,29 @@ function App() {
       </div>
 
       {/* Hand */}
-      <div className="shrink-0 bg-gray-900/90 border-t border-gray-800 px-2 md:px-6 py-2 md:py-4">
-        <div className="flex items-end justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pb-2 scrollbar-hide">
-          {hand.map((card, i) => (
-            <div key={card.uid} className="shrink-0">
-              <Card
-                card={card}
-                effectiveCost={getEffectiveCost(card)}
-                onClick={() => !isEnemyTurn && selectCard(i)}
-                disabled={!canPlayCard(card) || isEnemyTurn}
-                mobile
-              />
-            </div>
-          ))}
+      <div className="shrink-0 bg-gray-900/90 border-t border-gray-800 px-2 md:px-6">
+        <div className="flex items-end justify-start md:justify-center gap-2 md:gap-3 overflow-x-auto pt-5 md:pt-6 pb-3 md:pb-4 scrollbar-hide">
+          {hand.map((card, i) => {
+            const isNew = drawAnimCards.has(card.uid)
+            const drawIndex = isNew ? [...drawAnimCards].indexOf(card.uid) : 0
+            return (
+              <div
+                key={card.uid}
+                className={`shrink-0 rounded-xl ${isNew ? 'animate-card-draw' : ''}`}
+                style={isNew ? { animationDelay: `${drawIndex * 0.08}s` } : undefined}
+              >
+                <Card
+                  card={card}
+                  effectiveCost={getEffectiveCost(card)}
+                  onClick={() => !isEnemyTurn && selectCard(i)}
+                  disabled={!canPlayCard(card) || isEnemyTurn}
+                  mobile
+                />
+              </div>
+            )
+          })}
         </div>
+
       </div>
 
       {/* Battle Effect */}
