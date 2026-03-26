@@ -204,7 +204,7 @@ function App() {
             ))}
           </div>
           {/* Mobile Battle Log */}
-          <div className="md:hidden w-full max-w-xs">
+          <div className="md:hidden w-full px-2 mt-3">
             <BattleLog log={log} mobile />
           </div>
         </div>
