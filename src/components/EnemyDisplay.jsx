@@ -1,6 +1,6 @@
 import Tooltip from './Tooltip'
 
-export default function EnemyDisplay({ enemy, intent, selectable, selected, onClick, isActing, actionType }) {
+export default function EnemyDisplay({ enemy, intent, selectable, selected, onClick, isActing, actionType, attackDamage = 0 }) {
   if (!enemy || enemy.hp <= 0) return null
 
   const maxHp = enemy.hp + 50
@@ -24,6 +24,14 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
     ? 'ring-2 ring-amber-400 ring-offset-2 ring-offset-gray-950 bg-amber-900/20'
     : ''
 
+  // 데미지 기반 찌르기 깊이
+  const lunge = actionType === 'attack' && attackDamage > 0
+    ? attackDamage <= 5 ? 16 : attackDamage <= 12 ? 24 : attackDamage <= 25 ? 36 : 48
+    : 24
+  const lungeScale = actionType === 'attack' && attackDamage > 0
+    ? attackDamage <= 5 ? 0.08 : attackDamage <= 12 ? 0.15 : attackDamage <= 25 ? 0.2 : 0.28
+    : 0.15
+
   return (
     <button
       onClick={onClick}
@@ -37,8 +45,9 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
         ${actingClass}
         ${!isActing ? selectedClass : ''}
       `}
+      style={isActing && actionType === 'attack' ? { '--lunge': `${lunge}px`, '--lunge-scale': lungeScale } : undefined}
     >
-      <div className={`text-4xl md:text-5xl transition-transform duration-300 ${isActing && actionType === 'attack' ? 'scale-125 -translate-x-2' : ''}`}>{enemy.emoji}</div>
+      <div className={`text-4xl md:text-5xl transition-transform duration-150 ${isActing && actionType === 'attack' ? 'scale-110' : ''}`}>{enemy.emoji}</div>
 
       <div className="text-white font-bold text-sm md:text-sm">{enemy.name}</div>
 

@@ -57,6 +57,12 @@ export default function BattleEffect({ effect, onDone }) {
   useEffect(() => {
     if (!effect) return
 
+    // 적 공격은 아이콘 없이 즉시 완료
+    if (effect.type === 'enemy_attack') {
+      const t = setTimeout(() => onDone(), 50)
+      return () => clearTimeout(t)
+    }
+
     // enter → active
     const t1 = setTimeout(() => setStage('active'), 50)
     // active → exit
@@ -76,6 +82,9 @@ export default function BattleEffect({ effect, onDone }) {
 
   if (!effect) return null
 
+  // 적 공격은 흔들림만 (App.jsx에서 처리), 아이콘 표시 없음
+  if (effect.type === 'enemy_attack') return null
+
   const config = getEffectConfig(effect)
 
   return (
@@ -89,32 +98,16 @@ export default function BattleEffect({ effect, onDone }) {
 
       {/* Center burst */}
       <div
-        className={`relative flex flex-col items-center gap-1 transition-all duration-300 ${
+        className={`relative flex flex-col items-center gap-1 transition-[opacity,transform] duration-300 ${
           stage === 'enter'
-            ? 'scale-50 opacity-0'
+            ? 'opacity-0 translate-y-4'
             : stage === 'active'
-              ? 'scale-110 opacity-100'
-              : 'scale-150 opacity-0'
+              ? 'opacity-100 translate-y-0'
+              : 'opacity-0 -translate-y-4'
         }`}
       >
-        {/* Particles */}
-        {config.symbols.map((s, i) => (
-          <div
-            key={i}
-            className="absolute text-2xl md:text-4xl animate-ping"
-            style={{
-              top: `${Math.sin((i * Math.PI * 2) / 3) * 50}px`,
-              left: `${Math.cos((i * Math.PI * 2) / 3) * 50}px`,
-              animationDuration: `${0.4 + i * 0.15}s`,
-              animationIterationCount: 1,
-            }}
-          >
-            {s}
-          </div>
-        ))}
-
         {/* Main icon */}
-        <div className="text-5xl md:text-7xl drop-shadow-lg">
+        <div className="text-5xl md:text-7xl">
           {config.symbols[0]}
         </div>
 

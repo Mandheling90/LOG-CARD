@@ -72,6 +72,7 @@ export function useGameState() {
   const [isEnemyTurn, setIsEnemyTurn] = useState(false);
   const [activeEnemyIndex, setActiveEnemyIndex] = useState(null);
   const [activeEnemyAction, setActiveEnemyAction] = useState(null); // 'attack' | 'defend' | 'stun'
+  const [activeEnemyDamage, setActiveEnemyDamage] = useState(0);
   const enemyTurnTimers = useRef([]);
 
   useEffect(() => {
@@ -305,17 +306,19 @@ export function useGameState() {
         targetIndex,
       );
 
+      // 총 데미지 계산 (HP + block 감소량)
+      const totalDamage = enemies.reduce((sum, orig, i) => {
+        const after = result.enemies[i];
+        const hpLoss = orig.hp - after.hp;
+        const blockLoss = (orig.block || 0) - (after.block || 0);
+        return sum + Math.max(0, hpLoss) + Math.max(0, blockLoss);
+      }, 0);
+
       setBattleEffect({
         type: card.type,
         nature: card.nature || null,
         name: card.name,
-        id: Date.now(),
-      });
-
-      setDiscardEffect({
-        name: card.name,
-        type: card.type,
-        nature: card.nature || null,
+        damage: totalDamage,
         id: Date.now(),
       });
 
@@ -500,6 +503,9 @@ export function useGameState() {
       const intent = enemyIntents[i];
       if (!intent) return;
 
+      const prevHp = cp.hp;
+      const prevBlock = cp.block || 0;
+
       if (intent.type === "attack") {
         stepLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`);
         const result = processEnemyAttack(intent.damage, {
@@ -543,9 +549,15 @@ export function useGameState() {
         stepLogs.push(`${enemy.name} 수비 태세 → ${intent.block} 방어`);
       }
 
+      // 피격 데미지 계산 (HP 손실 + 방어 소모)
+      const damageTaken = intent.type === "attack"
+        ? Math.max(0, prevHp - cp.hp) + Math.max(0, prevBlock - (cp.block || 0))
+        : 0;
+
       steps.push({
         enemyIndex: i,
         actionType: intent.type,
+        damageTaken,
         logs: stepLogs,
         player: { ...cp },
         enemies: ce.map((e) => ({ ...e })),
@@ -564,6 +576,7 @@ export function useGameState() {
       const highlightTimer = setTimeout(() => {
         setActiveEnemyIndex(step.enemyIndex);
         setActiveEnemyAction(step.actionType);
+        setActiveEnemyDamage(step.damageTaken || 0);
       }, idx * STEP_DELAY);
       enemyTurnTimers.current.push(highlightTimer);
 
@@ -577,6 +590,16 @@ export function useGameState() {
           setEvasionChance(step.evasionChance);
           setBuffs(step.buffs);
           addLogs(step.logs);
+          // 피격 시 화면 흔들림
+          if (step.damageTaken > 0) {
+            setBattleEffect({
+              type: 'enemy_attack',
+              nature: 'attack',
+              name: '',
+              damage: step.damageTaken,
+              id: Date.now(),
+            });
+          }
         },
         idx * STEP_DELAY + 300,
       );
@@ -588,6 +611,7 @@ export function useGameState() {
     const finishTimer = setTimeout(() => {
       setActiveEnemyIndex(null);
       setActiveEnemyAction(null);
+      setActiveEnemyDamage(0);
 
       const last = steps.length > 0 ? steps[steps.length - 1] : null;
       let fp = last ? { ...last.player } : { ...cp };
@@ -634,6 +658,39 @@ export function useGameState() {
         finishLogs.push("태극이 소진되어 쓰러졌다...");
         addLogs(finishLogs);
         setIsEnemyTurn(false);
+        return;
+      }
+
+      // 반격 등으로 적 전멸 시 승리 처리
+      const allDead = fe.every((e) => e.hp <= 0);
+      if (allDead) {
+        setPlayer(fp);
+        setEnemies(fe);
+        finishLogs.push("적을 모두 제압했다!");
+        addLogs(finishLogs);
+        setIsEnemyTurn(false);
+
+        const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
+        if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
+          setPhase(GAME_PHASE.VICTORY);
+        } else {
+          let pool = shuffleArray(REWARD_POOL);
+          const rewards = pool.slice(0, 3);
+          if (isBossFloor && LEGENDARY_POOL.length > 0) {
+            const lPool = shuffleArray(LEGENDARY_POOL);
+            rewards[2] = lPool[0];
+          } else if (currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) && LEGENDARY_POOL.length > 0) {
+            const lPool = shuffleArray(LEGENDARY_POOL);
+            rewards[2] = lPool[0];
+          }
+          setRewardCards(
+            rewards.map((c, i) => ({
+              ...c,
+              uid: `reward_${chapter}_${currentFloor}_counter_${i}`,
+            })),
+          );
+          setPhase(GAME_PHASE.REWARD);
+        }
         return;
       }
 
@@ -794,6 +851,7 @@ export function useGameState() {
     isEnemyTurn,
     activeEnemyIndex,
     activeEnemyAction,
+    activeEnemyDamage,
     // 맵 관련
     mapFloors,
     currentFloor,

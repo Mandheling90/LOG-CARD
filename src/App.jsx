@@ -18,7 +18,7 @@ function App() {
     phase, player, energy, hand, drawPile, discardPile,
     enemies, enemyIntents, rewardCards, log, deck,
     selectedEnemyIndex, taeguk, buffs, evasionCount, counter, stance,
-    isEnemyTurn, activeEnemyIndex, activeEnemyAction,
+    isEnemyTurn, activeEnemyIndex, activeEnemyAction, activeEnemyDamage,
     mapFloors, currentFloor, visitedNodes, availableNodes,
     startGame, selectCard, selectEnemy, endTurn,
     selectReward, selectMapNode, resolveNonBattle, spendTaeguk,
@@ -45,15 +45,22 @@ function App() {
     }
   }, [hand])
 
-  // 공격 시 화면 흔들림
-  const [shakeKey, setShakeKey] = useState(null)
+  // 공격 시 화면 흔들림 (데미지 비례)
+  const shakeRef = useRef(null)
   useEffect(() => {
     if (!battleEffect) return
-    const isAttack = battleEffect.nature === 'attack' || battleEffect.nature === 'dual'
-    if (isAttack) {
-      setShakeKey(battleEffect.id)
-      const timer = setTimeout(() => setShakeKey(null), 350)
-      return () => clearTimeout(timer)
+    const isAttack = battleEffect.nature === 'attack' || battleEffect.nature === 'dual' || battleEffect.type === 'enemy_attack'
+    if (isAttack && battleEffect.damage > 0) {
+      const el = shakeRef.current
+      if (!el) return
+      const dmg = battleEffect.damage
+      const intensity = dmg <= 10 ? 2 : dmg <= 25 ? 4 : dmg <= 50 ? 7 : 10
+      const duration = dmg <= 10 ? 0.2 : dmg <= 25 ? 0.3 : dmg <= 50 ? 0.4 : 0.5
+      el.style.setProperty('--shake', `${intensity}px`)
+      el.style.setProperty('--shake-duration', `${duration}s`)
+      el.classList.remove('animate-screen-shake')
+      void el.offsetWidth // reflow로 애니메이션 재시작
+      el.classList.add('animate-screen-shake')
     }
   }, [battleEffect])
 
@@ -137,7 +144,7 @@ function App() {
   // 전투 화면
   return (
     <div className="h-[100dvh] bg-gray-950 overflow-hidden">
-      <div key={shakeKey} className={`h-full flex flex-col ${shakeKey ? 'animate-screen-shake' : ''}`}>
+      <div ref={shakeRef} className="h-full flex flex-col">
       {/* Header */}
       <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
         <Tooltip text="현재 층수: 10층이 최종 보스">
@@ -192,6 +199,7 @@ function App() {
                 onClick={() => !isEnemyTurn && enemy.hp > 0 && selectEnemy(i)}
                 isActing={isEnemyTurn && activeEnemyIndex === i}
                 actionType={isEnemyTurn && activeEnemyIndex === i ? activeEnemyAction : null}
+                attackDamage={isEnemyTurn && activeEnemyIndex === i ? activeEnemyDamage : 0}
               />
             ))}
           </div>
