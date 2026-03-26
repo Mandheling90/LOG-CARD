@@ -6,8 +6,14 @@ import {
   cardNeedsTarget,
   DEBUG_CARD,
   BASE_CARDS,
+  SIHYE_CARD,
+  JJOKBAK_CARD,
 } from "../data/cards";
-import { getEnemiesForFloor, getDebugEnemies } from "../data/enemies";
+import {
+  getEnemiesForFloor,
+  getDebugEnemies,
+  getBossForChapter,
+} from "../data/enemies";
 import { ARTIFACTS } from "../data/artifacts";
 import { generateMap, NODE_TYPES, parseNodeId } from "../data/mapGenerator";
 import {
@@ -64,6 +70,10 @@ export function useGameState() {
   const [cardsPlayedThisTurn, setCardsPlayedThisTurn] = useState(0);
 
   const hasArtifact = useCallback((id) => artifacts.includes(id), [artifacts]);
+
+  // 보스 전투 추적 (ref로 stale closure 방지)
+  const sihyeUsedRef = useRef(false);
+  const bossAttackedRef = useRef(false);
 
   // 전투 상태
   const [taeguk, setTaeguk] = useState(0);
@@ -176,24 +186,42 @@ export function useGameState() {
         case NODE_TYPES.BOSS: {
           // 전투 시작 (인라인)
           let newEnemies;
+          let isBossBattle = false;
           if (IS_DEBUG) {
-            // 디버그: 다양한 적 3명
             newEnemies = getDebugEnemies();
+          } else if (node.type === NODE_TYPES.BOSS) {
+            const boss = getBossForChapter(chapter);
+            if (boss) {
+              newEnemies = boss;
+              isBossBattle = true;
+            } else {
+              newEnemies = getEnemiesForFloor(floor);
+              newEnemies.forEach((e) => {
+                e.hp = Math.floor(e.hp * 2);
+              });
+            }
           } else {
             newEnemies = getEnemiesForFloor(floor);
             if (node.type === NODE_TYPES.ELITE) {
               newEnemies.forEach((e) => {
                 e.hp = Math.floor(e.hp * 1.5);
               });
-            } else if (node.type === NODE_TYPES.BOSS) {
-              const bossMult = floor <= 5 ? 1.5 : 2;
-              newEnemies.forEach((e) => {
-                e.hp = Math.floor(e.hp * bossMult);
-              });
             }
           }
 
-          const allCards = [...deck];
+          // 보스전: 시혜 카드 5장 삽입
+          const allCards =
+            isBossBattle && newEnemies[0]?.bossId === "wisungae"
+              ? [
+                  ...deck,
+                  ...Array(5)
+                    .fill(null)
+                    .map((_, i) => ({
+                      ...SIHYE_CARD,
+                      uid: `sihye_${i}_${Date.now()}`,
+                    })),
+                ]
+              : [...deck];
           const shuffled = shuffleArray(allCards);
           const { drawn, drawPile: newDrawPile } = drawCards(
             shuffled,
@@ -219,6 +247,8 @@ export function useGameState() {
           setEnemies(newEnemies);
           setEnemyIntents(newEnemies.map((e) => getEnemyIntent(e, 0)));
           resetBattleState();
+          sihyeUsedRef.current = false;
+          bossAttackedRef.current = false;
           setEnergy(IS_DEBUG ? 10 : MAX_ENERGY);
           if (IS_DEBUG) setTaeguk(3);
 
@@ -281,7 +311,10 @@ export function useGameState() {
   // 버프 기반 코스트 감소 계산
   const getEffectiveCost = useCallback(
     (card) => {
-      const reduction = buffs.reduce((sum, b) => sum + (b.costReduction || 0), 0);
+      const reduction = buffs.reduce(
+        (sum, b) => sum + (b.costReduction || 0),
+        0,
+      );
       return Math.max(0, card.cost - reduction);
     },
     [buffs],
@@ -291,7 +324,9 @@ export function useGameState() {
   const canPlayCard = useCallback(
     (card) => {
       if (getEffectiveCost(card) > energy) return false;
-      const taegukCost = card.effects?.find((e) => e.type === "consumeTaegukCost");
+      const taegukCost = card.effects?.find(
+        (e) => e.type === "consumeTaegukCost",
+      );
       if (taegukCost && taeguk < taegukCost.value) return false;
       return true;
     },
@@ -337,17 +372,37 @@ export function useGameState() {
       // 기물: 음양패 - 전환 5회마다 공력 +1
       const prevStance = stance;
       const newStance = result.stance;
-      if (hasArtifact("yin_yang_token") && prevStance && newStance && prevStance !== newStance) {
+      if (
+        hasArtifact("yin_yang_token") &&
+        prevStance &&
+        newStance &&
+        prevStance !== newStance
+      ) {
         const newTotal = artifactSwitchTotal + 1;
         setArtifactSwitchTotal(newTotal);
         if (newTotal % 5 === 0) {
-          result.player = { ...result.player, strength: (result.player.strength || 0) + 1 };
+          result.player = {
+            ...result.player,
+            strength: (result.player.strength || 0) + 1,
+          };
           result.logs.push("음양패 → 전환 5회 달성! 공력 +1");
         }
       }
 
       // 카드 사용 카운트 (목탁용)
       setCardsPlayedThisTurn((prev) => prev + 1);
+
+      // 보스 전투 추적
+      if (card.effects?.some((e) => e.type === "sihye")) {
+        sihyeUsedRef.current = true;
+      }
+      const bossEnemy = enemies.find((e) => e.bossId);
+      if (bossEnemy) {
+        const bossIdx = enemies.indexOf(bossEnemy);
+        if (result.enemies[bossIdx].hp < bossEnemy.hp) {
+          bossAttackedRef.current = true;
+        }
+      }
 
       // 총 데미지 계산 (HP + block 감소량)
       const totalDamage = enemies.reduce((sum, orig, i) => {
@@ -412,9 +467,14 @@ export function useGameState() {
           // 최종장 보스 클리어 → 승리
           setPhase(GAME_PHASE.VICTORY);
         } else if (isBossFloor) {
-          // 장 보스 클리어 → 다음 장으로 전환 (보상 후)
+          // 장 보스 클리어 → 보스 보상 + 일반 보상
+          const bossEnemy = result.enemies.find((e) => e.bossId);
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
+          // 위선개 보스 보상: 쪽박
+          if (bossEnemy?.bossId === "wisungae") {
+            rewards[0] = JJOKBAK_CARD;
+          }
           if (LEGENDARY_POOL.length > 0) {
             const lPool = shuffleArray(LEGENDARY_POOL);
             rewards[2] = lPool[0];
@@ -431,7 +491,10 @@ export function useGameState() {
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
           // 장의 후반부(3층 이상)에서 전설 카드 포함 가능
-          if (currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) && LEGENDARY_POOL.length > 0) {
+          if (
+            currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) &&
+            LEGENDARY_POOL.length > 0
+          ) {
             const lPool = shuffleArray(LEGENDARY_POOL);
             rewards[2] = lPool[0];
           }
@@ -496,7 +559,16 @@ export function useGameState() {
         playCardOnTarget(cardIndex, null);
       }
     },
-    [phase, isEnemyTurn, hand, selectedEnemyIndex, enemies, showToast, canPlayCard, playCardOnTarget],
+    [
+      phase,
+      isEnemyTurn,
+      hand,
+      selectedEnemyIndex,
+      enemies,
+      showToast,
+      canPlayCard,
+      playCardOnTarget,
+    ],
   );
 
   const endTurn = useCallback(() => {
@@ -606,12 +678,66 @@ export function useGameState() {
       } else if (intent.type === "defend") {
         ce[i] = { ...ce[i], block: intent.block };
         stepLogs.push(`${enemy.name} 수비 태세 → ${intent.block} 방어`);
+      } else if (intent.type === "begging") {
+        // 구걸 해결
+        if (sihyeUsedRef.current) {
+          // 시혜 사용 → 크게 회복 + 버프, sihyeCount 증가
+          const heal = Math.floor(ce[i].hp * 0.3) + 20;
+          ce[i] = {
+            ...ce[i],
+            hp: ce[i].hp + heal,
+            sihyeCount: (ce[i].sihyeCount || 0) + 1,
+          };
+          stepLogs.push(
+            `${enemy.name}: "좋다, 좋아!" → 체력 +${heal}, 공력 강화!`,
+          );
+          // 시혜 3회 → 각성
+          if (ce[i].sihyeCount >= 3 && ce[i].phase2) {
+            const p2 = ce[i].phase2;
+            ce[i] = {
+              ...ce[i],
+              name: p2.name,
+              emoji: p2.emoji,
+              hp: p2.hp,
+              actions: p2.actions,
+              bossPhase: 2,
+            };
+            stepLogs.push(
+              `나를 대적하지 않기에 나의 무공은 너를 해할 수 없구나`,
+              `위선개는 잊었던 걸인의 마음을 깨달았다! ${p2.name}(으)로 각성!`,
+              `이젠 적이아닌 협으로 그대에게 가르침을 주겠다`,
+            );
+          }
+        } else if (bossAttackedRef.current) {
+          // 공격 → 플레이어 디버프
+          cBuffs = [
+            ...cBuffs,
+            {
+              buffId: "beggar_curse_" + Date.now(),
+              name: "약점 노출",
+              duration: 3,
+              damageReceiveMultiplier: 1.5,
+            },
+          ];
+          stepLogs.push(
+            `${enemy.name}: "그러고도 정파의 고수냐!" → 약점 노출! (받는 피해 50% 증가, 3턴)`,
+          );
+        } else {
+          // 방치 → 회복 + 소규모 버프
+          const heal = Math.floor(ce[i].hp * 0.15) + 10;
+          ce[i] = { ...ce[i], hp: ce[i].hp + heal };
+          stepLogs.push(`${enemy.name}: 구걸로 기력 회복 → 체력 +${heal}`);
+        }
+        sihyeUsedRef.current = false;
+        bossAttackedRef.current = false;
       }
 
       // 피격 데미지 계산 (HP 손실 + 방어 소모)
-      const damageTaken = intent.type === "attack"
-        ? Math.max(0, prevHp - cp.hp) + Math.max(0, prevBlock - (cp.block || 0))
-        : 0;
+      const damageTaken =
+        intent.type === "attack"
+          ? Math.max(0, prevHp - cp.hp) +
+            Math.max(0, prevBlock - (cp.block || 0))
+          : 0;
 
       steps.push({
         enemyIndex: i,
@@ -652,9 +778,9 @@ export function useGameState() {
           // 피격 시 화면 흔들림
           if (step.damageTaken > 0) {
             setBattleEffect({
-              type: 'enemy_attack',
-              nature: 'attack',
-              name: '',
+              type: "enemy_attack",
+              nature: "attack",
+              name: "",
               damage: step.damageTaken,
               id: Date.now(),
             });
@@ -738,7 +864,10 @@ export function useGameState() {
           if (isBossFloor && LEGENDARY_POOL.length > 0) {
             const lPool = shuffleArray(LEGENDARY_POOL);
             rewards[2] = lPool[0];
-          } else if (currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) && LEGENDARY_POOL.length > 0) {
+          } else if (
+            currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) &&
+            LEGENDARY_POOL.length > 0
+          ) {
             const lPool = shuffleArray(LEGENDARY_POOL);
             rewards[2] = lPool[0];
           }
@@ -755,12 +884,15 @@ export function useGameState() {
 
       // 기물: 혈염석 - 플레이어가 체력을 잃었으면 다음 턴 공력 +2
       if (hasArtifact("blood_stone") && fp.hp < player.hp) {
-        fb = [...fb, {
-          buffId: "blood_stone_" + Date.now(),
-          name: "혈염석",
-          duration: 2,
-          grantedStrength: 2,
-        }];
+        fb = [
+          ...fb,
+          {
+            buffId: "blood_stone_" + Date.now(),
+            name: "혈염석",
+            duration: 2,
+            grantedStrength: 2,
+          },
+        ];
         fp = { ...fp, strength: (fp.strength || 0) + 2 };
         finishLogs.push("혈염석 → 피를 흘려 공력 +2!");
       }
@@ -779,7 +911,12 @@ export function useGameState() {
       finishLogs.push(...buffResult.logs);
 
       // 기물: 청명등 - 디버프(피해 증가 버프) 있으면 태극 +1
-      if (hasArtifact("clear_lantern") && fb.some(b => b.damageReceiveMultiplier && b.damageReceiveMultiplier > 1)) {
+      if (
+        hasArtifact("clear_lantern") &&
+        fb.some(
+          (b) => b.damageReceiveMultiplier && b.damageReceiveMultiplier > 1,
+        )
+      ) {
         ft += 1;
         finishLogs.push("청명등 → 디버프 상태에서 태극 +1!");
       }
@@ -815,6 +952,8 @@ export function useGameState() {
       setStance(null);
       setSwitchCount(0);
       setCardsPlayedThisTurn(0);
+      sihyeUsedRef.current = false;
+      bossAttackedRef.current = false;
       setIsEnemyTurn(false);
       addLogs(finishLogs);
     }, finishDelay);
@@ -856,8 +995,10 @@ export function useGameState() {
   const selectReward = useCallback(
     (card) => {
       if (card) {
-        setDeck((prev) => [...prev, card]);
+        setDeck((prev) => [...prev.filter((c) => c.id !== "sihye"), card]);
         addLog(`${card.name}을(를) 깨달았다!`);
+      } else {
+        setDeck((prev) => prev.filter((c) => c.id !== "sihye"));
       }
       setPhase(GAME_PHASE.MAP);
     },
@@ -894,7 +1035,11 @@ export function useGameState() {
       }
 
       if (result.artifact) {
-        setArtifacts((prev) => prev.includes(result.artifact.id) ? prev : [...prev, result.artifact.id]);
+        setArtifacts((prev) =>
+          prev.includes(result.artifact.id)
+            ? prev
+            : [...prev, result.artifact.id],
+        );
       }
 
       if (result.message) {

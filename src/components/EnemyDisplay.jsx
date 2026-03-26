@@ -9,7 +9,9 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
   const intentTip = intent
     ? intent.type === 'attack'
       ? `다음 턴에 ${intent.damage} 피해를 줍니다`
-      : `다음 턴에 방어력 ${intent.block}을 얻습니다`
+      : intent.type === 'begging'
+        ? '구걸: 시혜/공격/방치에 따라 다른 결과'
+        : `다음 턴에 방어력 ${intent.block}을 얻습니다`
     : ''
 
   const actingClass = isActing
@@ -74,11 +76,15 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
           <div className={`mt-0.5 px-2.5 py-0.5 rounded text-xs font-medium ${
             intent.type === 'attack'
               ? 'bg-red-900/60 text-red-300 border border-red-700'
-              : 'bg-blue-900/60 text-blue-300 border border-blue-700'
+              : intent.type === 'begging'
+                ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
+                : 'bg-blue-900/60 text-blue-300 border border-blue-700'
           }`}>
             {intent.type === 'attack'
               ? `⚔️ ${intent.damage}`
-              : `🛡️ ${intent.block}`
+              : intent.type === 'begging'
+                ? '🙏 구걸'
+                : `🛡️ ${intent.block}`
             }
           </div>
         </Tooltip>

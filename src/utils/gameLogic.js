@@ -461,6 +461,22 @@ export function processCardEffects(card, state, targetIndex) {
         break;
       }
 
+      case "sihye": {
+        logs.push(`${card.name} → 자비를 베풀다!`);
+        break;
+      }
+
+      case "selfRemoveBlock": {
+        const removed = player.block || 0;
+        player.block = 0;
+        if (removed > 0) {
+          logs.push(`${card.name} → 호신강기 ${removed} 소멸!`);
+        } else {
+          logs.push(`${card.name} → 호신강기가 없다!`);
+        }
+        break;
+      }
+
       case "taegukStrength": {
         const bonus = taeguk;
         if (bonus <= 0) {

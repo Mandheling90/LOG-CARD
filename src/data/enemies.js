@@ -73,6 +73,44 @@ export function getDebugEnemies() {
   return picked
 }
 
+export function getBossForChapter(chapter) {
+  if (chapter === 1) {
+    return [
+      {
+        ...createEnemy({
+          id: "wisungae",
+          name: "위선개",
+          emoji: "🐕",
+          hp: 120,
+          actions: [
+            { type: "attack", damage: 8 },
+            { type: "defend", block: 12 },
+            { type: "attack", damage: 10 },
+            { type: "attack", damage: 6 },
+            { type: "begging" },
+          ],
+        }),
+        bossId: "wisungae",
+        bossPhase: 1,
+        sihyeCount: 0,
+        phase2: {
+          name: "오탁룡 장홍",
+          emoji: "🐉",
+          hp: 150,
+          actions: [
+            { type: "attack", damage: 14, label: "타구봉법" },
+            { type: "attack", damage: 10 },
+            { type: "attack", damage: 24, label: "항룡십팔장" },
+            { type: "defend", block: 15 },
+            { type: "attack", damage: 18, label: "타구봉법" },
+          ],
+        },
+      },
+    ];
+  }
+  return null;
+}
+
 export function getEnemiesForFloor(floor) {
   if (floor <= 1) return [createEnemy(ENEMIES[0])]
   if (floor <= 2) return [createEnemy(ENEMIES[0]), createEnemy(ENEMIES[0])]

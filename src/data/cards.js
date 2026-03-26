@@ -560,6 +560,32 @@ export const BASE_CARDS = [
   // },
 ];
 
+// 보스 전용 카드
+export const SIHYE_CARD = {
+  id: "sihye",
+  name: "시혜",
+  type: CARD_TYPES.SIMBEOP,
+  rarity: RARITY.COMMON,
+  cost: 3,
+  description: "태극 3 소모.\n위선개에게 자비를 베푼다.",
+  effects: [
+    { type: "consumeTaegukCost", value: 3 },
+    { type: "sihye" },
+  ],
+};
+
+// 보스 보상 카드
+export const JJOKBAK_CARD = {
+  id: "jjokbak",
+  name: "쪽박",
+  type: CARD_TYPES.CHOSIK,
+  nature: CARD_NATURE.ATTACK,
+  rarity: RARITY.RARE,
+  cost: 0,
+  description: "자신의 호신강기를 0으로 만든다.",
+  effects: [{ type: "selfRemoveBlock" }],
+};
+
 export const DEBUG_CARD = {
   id: "debug_kill",
   name: "천지멸살",
