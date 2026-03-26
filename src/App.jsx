@@ -26,6 +26,9 @@ function App() {
     getEffectiveCost, canPlayCard,
   } = useGameState()
 
+  // 카드 더미 팝업
+  const [pilePopup, setPilePopup] = useState(null) // 'draw' | 'discard' | null
+
   // 드로우 애니메이션: 핸드의 카드 uid 추적하여 새 카드만 애니메이션
   const prevHandRef = useRef(new Set())
   const [drawAnimCards, setDrawAnimCards] = useState(new Set())
@@ -212,33 +215,44 @@ function App() {
 
       {/* Action Bar */}
       <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-1.5 md:py-2 bg-gray-900/60 border-t border-gray-800">
-        <Tooltip text="태극 3 소모하여 기력 +1 획득">
-          <button
-            onClick={spendTaeguk}
-            disabled={taeguk < 3 || isEnemyTurn}
-            className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-lg border border-cyan-600 transition-all whitespace-nowrap ${
-              taeguk >= 3 && !isEnemyTurn
-                ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
-                : 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            ☯ 태극→기력
-          </button>
-        </Tooltip>
+        <div className="flex items-center gap-2">
+          <Tooltip text="태극 3 소모하여 기력 +1 획득">
+            <button
+              onClick={spendTaeguk}
+              disabled={taeguk < 3 || isEnemyTurn}
+              className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-cyan-700 to-cyan-900 text-cyan-200 font-bold rounded-lg border border-cyan-600 transition-all whitespace-nowrap ${
+                taeguk >= 3 && !isEnemyTurn
+                  ? 'hover:from-cyan-600 hover:to-cyan-800 hover:scale-105 cursor-pointer'
+                  : 'opacity-50 cursor-not-allowed'
+              }`}
+            >
+              ☯ 태극→기력
+            </button>
+          </Tooltip>
+        </div>
 
-        <Tooltip text="턴을 넘기면 적이 행동합니다">
+        <div className="flex items-center gap-2">
+          <Tooltip text="턴을 넘기면 적이 행동합니다">
+            <button
+              onClick={endTurn}
+              disabled={isEnemyTurn}
+              className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-gray-700 to-gray-900 text-amber-300 font-bold rounded-lg border border-gray-600 transition-all whitespace-nowrap ${
+                isEnemyTurn
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'hover:from-gray-600 hover:to-gray-800 hover:scale-105 cursor-pointer'
+              }`}
+            >
+              {isEnemyTurn ? '⏳ 적의 턴...' : '⏭ 턴 종료'}
+            </button>
+          </Tooltip>
           <button
-            onClick={endTurn}
-            disabled={isEnemyTurn}
-            className={`px-3 md:px-5 py-1.5 md:py-2 text-xs md:text-sm bg-gradient-to-b from-gray-700 to-gray-900 text-amber-300 font-bold rounded-lg border border-gray-600 transition-all whitespace-nowrap ${
-              isEnemyTurn
-                ? 'opacity-50 cursor-not-allowed'
-                : 'hover:from-gray-600 hover:to-gray-800 hover:scale-105 cursor-pointer'
-            }`}
+            onClick={() => setPilePopup('draw')}
+            className="w-8 h-8 md:w-9 md:h-9 flex items-center justify-center rounded-lg bg-gray-800 border border-gray-600 text-sm md:text-base hover:bg-gray-700 hover:scale-105 transition-all cursor-pointer"
+            title="보유 비급"
           >
-            {isEnemyTurn ? '⏳ 적의 턴...' : '⏭ 턴 종료'}
+            🃏
           </button>
-        </Tooltip>
+        </div>
       </div>
 
       {/* Hand */}
@@ -279,6 +293,47 @@ function App() {
           </div>
         </div>
       )}
+
+      {/* Deck Popup */}
+      {pilePopup && (() => {
+        const usedUids = new Set([...hand.map(c => c.uid), ...discardPile.map(c => c.uid)])
+        const groups = [
+          { label: '⚔️ 초식(공)', cards: deck.filter(c => c.type === 'chosik' && c.nature === 'attack') },
+          { label: '🛡️ 초식(수)', cards: deck.filter(c => c.type === 'chosik' && c.nature === 'defense') },
+          { label: '☯️ 초식(공수)', cards: deck.filter(c => c.type === 'chosik' && c.nature === 'dual') },
+          { label: '🔥 심법', cards: deck.filter(c => c.type === 'simbeop') },
+          { label: '💨 보법', cards: deck.filter(c => c.type === 'bobeop') },
+        ].filter(g => g.cards.length > 0)
+        return (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70" onClick={() => setPilePopup(null)}>
+            <div className="bg-gray-900 border border-gray-700 rounded-2xl p-4 md:p-6 max-w-lg w-[92%] max-h-[75vh] flex flex-col" onClick={e => e.stopPropagation()}>
+              <div className="flex justify-between items-center mb-3">
+                <h3 className="text-white font-bold text-base md:text-lg">
+                  🃏 보유 비급
+                  <span className="text-gray-400 text-sm ml-2">
+                    ({deck.length}장 / 남은 {drawPile.length}장)
+                  </span>
+                </h3>
+                <button onClick={() => setPilePopup(null)} className="text-gray-400 hover:text-white text-xl cursor-pointer">✕</button>
+              </div>
+              <div className="overflow-y-auto flex-1 scrollbar-hide flex flex-col gap-3">
+                {groups.map(group => (
+                  <div key={group.label}>
+                    <div className="text-gray-400 text-xs font-bold mb-1.5 px-1">{group.label} ({group.cards.length})</div>
+                    <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+                      {group.cards.map((card, i) => (
+                        <div key={`${card.uid}_${i}`} className={`shrink-0 ${usedUids.has(card.uid) ? 'opacity-35 grayscale' : ''}`}>
+                          <Card card={card} small />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Reward Modal */}
       {phase === GAME_PHASE.REWARD && (
