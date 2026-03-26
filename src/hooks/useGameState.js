@@ -860,13 +860,29 @@ export function useGameState() {
         const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
         if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
           setPhase(GAME_PHASE.VICTORY);
+        } else if (isBossFloor) {
+          setBossCleared(true);
+          const bossEnemy = fe.find((e) => e.bossId);
+          let pool = shuffleArray(REWARD_POOL);
+          const rewards = pool.slice(0, 3);
+          if (bossEnemy?.bossId === "wisungae") {
+            rewards[0] = JJOKBAK_CARD;
+          }
+          if (LEGENDARY_POOL.length > 0) {
+            const lPool = shuffleArray(LEGENDARY_POOL);
+            rewards[2] = lPool[0];
+          }
+          setRewardCards(
+            rewards.map((c, idx) => ({
+              ...c,
+              uid: `reward_${chapter}_${currentFloor}_counter_boss_${idx}`,
+            })),
+          );
+          setPhase(GAME_PHASE.REWARD);
         } else {
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
-          if (isBossFloor && LEGENDARY_POOL.length > 0) {
-            const lPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = lPool[0];
-          } else if (
+          if (
             currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) &&
             LEGENDARY_POOL.length > 0
           ) {
