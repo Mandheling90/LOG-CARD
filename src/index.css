@@ -9,6 +9,7 @@ body {
 
 html, body, #root {
   height: 100dvh;
+  background-color: #030712;
 }
 
 /* Hide scrollbar for hand area */

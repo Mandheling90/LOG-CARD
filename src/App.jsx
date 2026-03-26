@@ -136,7 +136,8 @@ function App() {
 
   // 전투 화면
   return (
-    <div key={shakeKey} className={`h-[100dvh] bg-gray-950 flex flex-col overflow-hidden ${shakeKey ? 'animate-screen-shake' : ''}`}>
+    <div className="h-[100dvh] bg-gray-950 overflow-hidden">
+      <div key={shakeKey} className={`h-full flex flex-col ${shakeKey ? 'animate-screen-shake' : ''}`}>
       {/* Header */}
       <div className="shrink-0 flex justify-between items-center px-3 md:px-6 py-2 md:py-3 bg-gray-900 border-b border-gray-800">
         <Tooltip text="현재 층수: 10층이 최종 보스">
@@ -256,6 +257,7 @@ function App() {
           })}
         </div>
 
+      </div>
       </div>
 
       {/* Battle Effect */}
