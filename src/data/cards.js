@@ -592,8 +592,6 @@ export function createStarterDeck() {
     ...Array(3)
       .fill(null)
       .map((_, i) => ({ ...guard, uid: `inner_guard_${i}` })),
-    ...Array(2)
-      .fill(null)
-      .map((_, i) => ({ ...cloud, uid: `cloud_step_${i}` })),
+    { ...cloud, uid: `cloud_step_0` },
   ];
 }
