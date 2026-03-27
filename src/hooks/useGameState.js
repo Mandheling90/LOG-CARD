@@ -474,7 +474,7 @@ export function useGameState() {
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
           // 위선개 보스 보상: 쪽박
-          if (bossEnemy?.bossId === "wisungae") {
+          if (bossEnemy?.bossId === "wisungae" && bossEnemy.bossPhase === 2) {
             rewards[0] = JJOKBAK_CARD;
           }
           if (LEGENDARY_POOL.length > 0) {
@@ -865,7 +865,7 @@ export function useGameState() {
           const bossEnemy = fe.find((e) => e.bossId);
           let pool = shuffleArray(REWARD_POOL);
           const rewards = pool.slice(0, 3);
-          if (bossEnemy?.bossId === "wisungae") {
+          if (bossEnemy?.bossId === "wisungae" && bossEnemy.bossPhase === 2) {
             rewards[0] = JJOKBAK_CARD;
           }
           if (LEGENDARY_POOL.length > 0) {
