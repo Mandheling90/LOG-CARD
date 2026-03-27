@@ -15,6 +15,7 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
       mercy: '🙏 자비구걸: 시혜/공격/방치에 따라 다른 결과',
       life: '💀 목숨구걸: 시혜/공격/방치에 따라 다른 결과',
     }[intent.beggingVariant] : '구걸',
+    exhaustion: '탈력 상태! 받는 피해 2배 (공격 찬스!)',
     buff_strength: `공력 +${intent?.value} 강화`,
     heal: `체력 ${intent?.value} 회복`,
     rage: `${intent?.damage + (enemy.strength || 0)}${intent?.hits > 1 ? `×${intent.hits}` : ''} 공격 + 공력 +${intent?.strengthGain} 강화`,
@@ -90,6 +91,11 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
             <span className="text-cyan-300 text-xs">🔰{Math.round(enemy.damageReduction * 100)}%</span>
           </Tooltip>
         )}
+        {enemy.damageReduction < 0 && (
+          <Tooltip text="약점 노출! 받는 피해 2배">
+            <span className="text-red-400 text-xs animate-pulse">💥×2</span>
+          </Tooltip>
+        )}
       </div>
 
       {intent && (
@@ -101,6 +107,7 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
               : intent.type === 'heal' ? 'bg-green-900/60 text-green-300 border border-green-700'
               : intent.type === 'debuff_vulnerable' ? 'bg-purple-900/60 text-purple-300 border border-purple-700'
               : intent.type === 'buff_armor' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700'
+              : intent.type === 'exhaustion' ? 'bg-amber-900/60 text-amber-300 border border-amber-700 animate-pulse'
               : intent.type === 'begging' ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
               : 'bg-blue-900/60 text-blue-300 border border-blue-700'
           }`}>
@@ -110,6 +117,7 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
               : intent.type === 'heal' ? `💚 +${intent.value}`
               : intent.type === 'debuff_vulnerable' ? '☠️ 저주'
               : intent.type === 'buff_armor' ? `🛡️ 철벽`
+              : intent.type === 'exhaustion' ? '😵 탈력!'
               : intent.type === 'begging' ? `${{money:'💰',food:'🍚',mercy:'🙏',life:'💀'}[intent.beggingVariant] || '🙏'} ${{money:'돈구걸',food:'밥구걸',mercy:'자비구걸',life:'목숨구걸'}[intent.beggingVariant] || '구걸'}`
               : `🛡️ ${intent.block}`
             }

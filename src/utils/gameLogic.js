@@ -38,7 +38,7 @@ export function getEnemyIntent(enemy, turn) {
 // 단일 대상 데미지 적용 (방어 + 피해감소 고려)
 function dealDamage(target, amount) {
   const t = { ...target };
-  const reduced = t.damageReduction > 0
+  const reduced = t.damageReduction
     ? Math.max(1, Math.ceil(amount * (1 - t.damageReduction)))
     : amount;
   const blocked = Math.min(t.block || 0, reduced);
@@ -114,6 +114,9 @@ export function processCardEffects(card, state, targetIndex) {
     }
   }
 
+  // 무검: 플레이어 공격력 0
+  const hasNullifyPlayerAttacks = buffs.some((b) => b.nullifyPlayerAttacks);
+
   // multiHit 추적용
   let lastMultiHitDmg = 0;
   let lastDamageValue = 0;
@@ -124,7 +127,7 @@ export function processCardEffects(card, state, targetIndex) {
     if (skipRemaining) break;
     switch (effect.type) {
       case "damage": {
-        const dmg = effect.value + (player.strength || 0);
+        const dmg = hasNullifyPlayerAttacks ? 0 : effect.value + (player.strength || 0);
         lastDamageValue = dmg;
         if (convertToAOE) {
           enemies = enemies.map((e) => {
@@ -143,7 +146,7 @@ export function processCardEffects(card, state, targetIndex) {
 
       case "multiHit": {
         if (targetIndex === null || targetIndex === undefined) break;
-        const dmg = effect.value + (player.strength || 0);
+        const dmg = hasNullifyPlayerAttacks ? 0 : effect.value + (player.strength || 0);
         lastMultiHitDmg = dmg;
         for (let h = 0; h < effect.hits; h++) {
           enemies[targetIndex] = dealDamage(enemies[targetIndex], dmg);
@@ -327,7 +330,7 @@ export function processCardEffects(card, state, targetIndex) {
           break;
         }
         const mult = finisherMultOverride || effect.multiplier;
-        const dmg = taeguk * mult + (player.strength || 0);
+        const dmg = hasNullifyPlayerAttacks ? 0 : taeguk * mult + (player.strength || 0);
         logs.push(`${card.name} → 태극 ${taeguk} × ${mult} = ${dmg} 타격!`);
         if (targetIndex !== null && targetIndex !== undefined) {
           enemies[targetIndex] = dealDamage(enemies[targetIndex], dmg);
@@ -338,7 +341,7 @@ export function processCardEffects(card, state, targetIndex) {
       }
 
       case "aoe": {
-        let dmg = effect.value + (player.strength || 0);
+        let dmg = hasNullifyPlayerAttacks ? 0 : effect.value + (player.strength || 0);
         const threshold = aoeThresholdOverride || effect.taegukThreshold;
         if (threshold && taeguk >= threshold) {
           dmg *= effect.bonusMultiplier;
@@ -371,6 +374,8 @@ export function processCardEffects(card, state, targetIndex) {
             invincible: effect.invincible || null,
             storedDamage: effect.storedDamage != null ? effect.storedDamage : null,
             guaranteedEvade: effect.guaranteedEvade || null,
+            nullifyAttacks: effect.nullifyAttacks || null,
+            nullifyPlayerAttacks: effect.nullifyPlayerAttacks || null,
             overflowBlock: effect.overflowBlock || null,
             costReduction: effect.costReduction || null,
           },

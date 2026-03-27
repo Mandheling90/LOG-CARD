@@ -27,9 +27,27 @@ export const ENEMIES = [
     emoji: "🐍",
     hp: 50,
     actions: [
-      { type: "attack", damage: 9, debuff: { name: "독", duration: 3, poisonDamage: 3 }, label: "독비도", log: "독공술사가 독 묻은 비도를 날린다!" },
-      { type: "debuff_vulnerable", name: "연막", duration: 1, drawReduction: 1, log: "독공술사가 연막을 뿌린다!" },
-      { type: "attack", damage: 6, debuff: { name: "마비", duration: 1, energyReduction: 1 }, label: "마비독", log: "독공술사가 마비독을 뿌린다!" },
+      {
+        type: "attack",
+        damage: 9,
+        debuff: { name: "독", duration: 3, poisonDamage: 3 },
+        label: "독비도",
+        log: "독공술사가 독 묻은 비도를 날린다!",
+      },
+      {
+        type: "debuff_vulnerable",
+        name: "연막",
+        duration: 1,
+        drawReduction: 1,
+        log: "독공술사가 연막을 뿌린다!",
+      },
+      {
+        type: "attack",
+        damage: 6,
+        debuff: { name: "마비", duration: 1, energyReduction: 1 },
+        label: "마비독",
+        log: "독공술사가 마비독을 뿌린다!",
+      },
     ],
   },
   {
@@ -38,11 +56,39 @@ export const ENEMIES = [
     emoji: "👹",
     hp: 65,
     actions: [
-      { type: "attack", damage: 12, label: "흑암장", log: "마교 장로가 검은 장력을 내뿜는다!" },
-      { type: "buff_strength", value: 2, block: 8, log: "마교 장로가 마공을 운용한다." },
-      { type: "attack", damage: 15, stripBlock: 0.5, label: "침식마공", log: "마교 장로의 마공이 호신강기를 갉아먹는다!" },
-      { type: "rage", damage: 5, hits: 3, strengthGain: 1, label: "혈살장", log: "마교 장로가 피빛 장력을 연달아 날린다!" },
-      { type: "heal", value: 10, block: 0, log: "마교 장로가 사혈공으로 내공을 축적한다." },
+      {
+        type: "attack",
+        damage: 12,
+        label: "흑암장",
+        log: "마교 장로가 검은 장력을 내뿜는다!",
+      },
+      {
+        type: "buff_strength",
+        value: 2,
+        block: 8,
+        log: "마교 장로가 마공을 운용한다.",
+      },
+      {
+        type: "attack",
+        damage: 15,
+        stripBlock: 0.5,
+        label: "침식마공",
+        log: "마교 장로의 마공이 호신강기를 갉아먹는다!",
+      },
+      {
+        type: "rage",
+        damage: 5,
+        hits: 3,
+        strengthGain: 1,
+        label: "혈살장",
+        log: "마교 장로가 피빛 장력을 연달아 날린다!",
+      },
+      {
+        type: "heal",
+        value: 10,
+        block: 0,
+        log: "마교 장로가 사혈공으로 내공을 축적한다.",
+      },
     ],
   },
   {
@@ -184,19 +230,94 @@ export function getBossForChapter(chapter) {
   }
   if (chapter === 2) {
     return [
-      createEnemy({
-        id: "demon_lord_boss",
-        name: "천마",
-        emoji: "😈",
-        hp: 200,
-        actions: [
-          { type: "attack", damage: 18 },
-          { type: "attack", damage: 12 },
-          { type: "attack", damage: 25 },
-          { type: "defend", block: 15 },
-          { type: "attack", damage: 20 },
-        ],
-      }),
+      {
+        ...createEnemy({
+          id: "sword_ghost",
+          name: "멸마검귀 강천",
+          emoji: "⚔️",
+          hp: 180,
+          actions: [
+            {
+              type: "attack",
+              damage: 10,
+              label: "멸마검 - 일식",
+              log: "검귀가 검을 천천히 뽑아든다.",
+            },
+            {
+              type: "attack",
+              damage: 14,
+              label: "멸마검 - 이식",
+              log: "검귀의 검이 빨라진다!",
+            },
+            {
+              type: "attack",
+              damage: 18,
+              hits: 2,
+              label: "멸마검 - 삼식",
+              log: "검귀의 검기가 공간을 가른다!",
+            },
+            {
+              type: "attack",
+              damage: 28,
+              label: "멸마검 - 사절",
+              log: "멸마검귀가 전력을 다해 검을 내려친다!",
+            },
+            {
+              type: "exhaustion",
+              log: "멸마검귀가 힘이 빠져 무릎을 꿇는다...",
+            },
+          ],
+        }),
+        bossId: "sword_ghost",
+        bossPhase: 1,
+        exhaustionMissCount: 0,
+        phase2: {
+          name: "복마검선 강천",
+          emoji: "🌊",
+          hp: 200,
+          actions: [
+            {
+              type: "attack",
+              damage: 12,
+              label: "복마검 - 일식",
+              log: "강천이 검을 뽑아든다.",
+            },
+            {
+              type: "attack",
+              damage: 14,
+              label: "복마검 - 이식",
+              log: "강천의 검이 빨라진다!",
+            },
+            {
+              type: "rage",
+              damage: 7,
+              hits: 3,
+              strengthGain: 1,
+              label: "복마검 - 삼연식",
+              log: "강천의 검이 세 번 연속으로 번개처럼 내리친다!",
+            },
+            {
+              type: "heal",
+              value: 10,
+              block: 10,
+              log: '"..." 강천이 잠시 검을 거두고 숨을 고른다.',
+            },
+            {
+              type: "attack",
+              damage: 26,
+              stripBlock: 0.5,
+              label: "복마검 - 파사현정",
+              log: "사(邪)를 깨고 정(正)을 드러낸다! 강천의 검이 호신강기를 뚫는다!",
+            },
+            {
+              type: "buff_strength",
+              value: 2,
+              block: 8,
+              log: "강천이 검을 세워 경의를 표한다. 흥미롭지 않나? 살의를 거둘 때 강해지는 검이라니",
+            },
+          ],
+        },
+      },
     ];
   }
   return null;

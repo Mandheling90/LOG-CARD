@@ -587,6 +587,24 @@ export const JJOKBAK_CARD = {
   effects: [{ type: "selfRemoveBlock" }],
 };
 
+export const MUGEOM_CARD = {
+  id: "mugeom",
+  name: "무검",
+  type: CARD_TYPES.SIMBEOP,
+  rarity: RARITY.RARE,
+  cost: 0,
+  description: "이번 턴 자신의 모든 공격 피해가 0이 된다.",
+  effects: [
+    {
+      type: "buff",
+      buffId: "mugeom",
+      name: "무검",
+      duration: 1,
+      nullifyPlayerAttacks: true,
+    },
+  ],
+};
+
 export const DEBUG_CARD = {
   id: "debug_kill",
   name: "천지멸살",

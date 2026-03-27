@@ -1,4 +1,4 @@
-import { SIHYE_CARD, JJOKBAK_CARD } from "../data/cards";
+import { SIHYE_CARD, JJOKBAK_CARD, MUGEOM_CARD } from "../data/cards";
 
 /**
  * Prepare the deck for a boss battle by inserting boss-specific cards.
@@ -34,9 +34,14 @@ export function prepareBossDeck(deck, bossEnemy) {
 export function getBossReward(bossEnemy, baseRewards, legendaryPool) {
   const rewards = [...baseRewards];
 
-  // 위선개 보스 보상: 쪽박
+  // 위선개 각성 보상: 쪽박
   if (bossEnemy?.bossId === "wisungae" && bossEnemy.bossPhase === 2) {
     rewards[0] = JJOKBAK_CARD;
+  }
+
+  // 멸마검귀 각성 보상: 무검
+  if (bossEnemy?.bossId === "sword_ghost" && bossEnemy.bossPhase === 2) {
+    rewards[0] = MUGEOM_CARD;
   }
 
   // 보스전 보상에는 항상 전설 카드 포함
