@@ -767,7 +767,7 @@ export function useGameState() {
         setPlayer(fp);
         setEnemies(fe);
         setPhase(GAME_PHASE.GAME_OVER);
-        finishLogs.push("태극이 소진되어 쓰러졌다...");
+        finishLogs.push("체력이 소진되어 쓰러졌다...");
         addLogs(finishLogs);
         setIsEnemyTurn(false);
         return;
