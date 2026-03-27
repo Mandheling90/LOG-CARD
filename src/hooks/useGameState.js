@@ -798,12 +798,17 @@ export function useGameState() {
       finishLogs.push(...buffResult.logs);
 
       // 디버프: 드로우 제한
+      // 디버프: 드로우 제한 / 드로우 감소
       const drawLimitBuff = fb.find((b) => b.drawLimit);
-      const actualDrawCount = drawLimitBuff
-        ? Math.min(HAND_SIZE + pouchBonus, drawLimitBuff.drawLimit)
-        : HAND_SIZE + pouchBonus;
+      const drawReduction = fb.reduce((sum, b) => sum + (b.drawReduction || 0), 0);
+      let actualDrawCount = HAND_SIZE + pouchBonus;
       if (drawLimitBuff) {
+        actualDrawCount = Math.min(actualDrawCount, drawLimitBuff.drawLimit);
         finishLogs.push(`${drawLimitBuff.name} → 드로우 ${drawLimitBuff.drawLimit}장 제한!`);
+      }
+      if (drawReduction > 0) {
+        actualDrawCount = Math.max(1, actualDrawCount - drawReduction);
+        finishLogs.push(`드로우 감소! → 드로우 -${drawReduction}`);
       }
 
       // 디버프: 에너지 감소

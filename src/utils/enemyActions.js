@@ -122,9 +122,10 @@ export function processEnemyAction(enemy, enemyIndex, intent, state, bossRefs) {
 
     // 관통강타: 공격 전 플레이어 방어력 제거
     if (intent.stripBlock && (player.block || 0) > 0) {
-      const stripped = player.block;
-      player = { ...player, block: 0 };
-      logs.push(`호신강기 관통! → 방어 ${stripped} 제거!`);
+      const ratio = typeof intent.stripBlock === 'number' ? intent.stripBlock : 1;
+      const stripped = ratio >= 1 ? player.block : Math.floor(player.block * ratio);
+      player = { ...player, block: player.block - stripped };
+      logs.push(`호신강기 ${ratio >= 1 ? '관통' : '파쇄'}! → 방어 ${stripped} 제거!`);
     }
 
     for (let h = 0; h < hits; h++) {
@@ -173,6 +174,29 @@ export function processEnemyAction(enemy, enemyIndex, intent, state, bossRefs) {
       };
       logs.push(`${enemy.name} 분노! → 공력 +${intent.strengthGain}`);
     }
+    // 공격 + 디버프 조합 (실제 HP 피해가 있을 때만 발동)
+    const hpDamaged = player.hp < prevHp;
+    if (intent.debuff && hpDamaged) {
+      const d = intent.debuff;
+      buffs = [
+        ...buffs,
+        {
+          buffId: `atk_debuff_${enemy.uid}_${Date.now()}`,
+          name: d.name,
+          duration: d.duration,
+          poisonDamage: d.poisonDamage || null,
+          energyReduction: d.energyReduction || null,
+          drawReduction: d.drawReduction || null,
+          damageReceiveMultiplier: d.damageReceiveMultiplier || null,
+        },
+      ];
+      const effects = [];
+      if (d.poisonDamage) effects.push(`매턴 ${d.poisonDamage} 피해`);
+      if (d.energyReduction) effects.push(`기력 -${d.energyReduction}`);
+      if (d.drawReduction) effects.push(`드로우 -${d.drawReduction}`);
+      if (d.damageReceiveMultiplier) effects.push(`받는 피해 ${Math.round((d.damageReceiveMultiplier - 1) * 100)}% 증가`);
+      logs.push(`${d.name} 부여! → ${effects.join(', ')} (${d.duration}턴)`);
+    }
   } else if (intent.type === "defend") {
     enemies[enemyIndex] = {
       ...enemies[enemyIndex],
@@ -198,18 +222,27 @@ export function processEnemyAction(enemy, enemyIndex, intent, state, bossRefs) {
     };
     logs.push(`${enemy.name} 회복! → 체력 +${maxHeal}${healBlock > 0 ? `, 방어 +${healBlock}` : ''}`);
   } else if (intent.type === "debuff_vulnerable") {
+    const debuffName = intent.name || `${enemy.name}의 저주`;
     buffs = [
       ...buffs,
       {
         buffId: `vuln_${enemy.uid}_${Date.now()}`,
-        name: `${enemy.name}의 저주`,
+        name: debuffName,
         duration: intent.duration || 2,
-        damageReceiveMultiplier: intent.value || 1.5,
+        damageReceiveMultiplier: intent.value || null,
+        poisonDamage: intent.poisonDamage || null,
+        energyReduction: intent.energyReduction || null,
+        drawReduction: intent.drawReduction || null,
+        drawLimit: intent.drawLimit || null,
       },
     ];
-    logs.push(
-      `${enemy.name}의 저주! → 받는 피해 ${Math.round(((intent.value || 1.5) - 1) * 100)}% 증가 (${intent.duration || 2}턴)`,
-    );
+    const effects = [];
+    if (intent.value) effects.push(`받는 피해 ${Math.round((intent.value - 1) * 100)}% 증가`);
+    if (intent.poisonDamage) effects.push(`매턴 ${intent.poisonDamage} 피해`);
+    if (intent.energyReduction) effects.push(`기력 -${intent.energyReduction}`);
+    if (intent.drawReduction) effects.push(`드로우 -${intent.drawReduction}`);
+    if (intent.drawLimit) effects.push(`드로우 ${intent.drawLimit}장 제한`);
+    logs.push(`${debuffName}! → ${effects.join(', ')} (${intent.duration || 2}턴)`);
   } else if (intent.type === "buff_armor") {
     enemies[enemyIndex] = {
       ...enemies[enemyIndex],

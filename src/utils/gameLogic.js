@@ -706,6 +706,11 @@ export function applyBuffsOnTurnStart(state) {
         logs.push(`${buff.name} → 태극 +${buff.perTurn.taeguk}`);
       }
     }
+    // 독 데미지
+    if (buff.poisonDamage) {
+      player.hp -= buff.poisonDamage;
+      logs.push(`${buff.name} → 독 피해 ${buff.poisonDamage}!`);
+    }
   }
 
   const newBuffs = [];
