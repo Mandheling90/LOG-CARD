@@ -26,7 +26,13 @@ export function drawCards(drawPile, discardPile, count) {
 
 export function getEnemyIntent(enemy, turn) {
   const actions = enemy.actions;
-  return actions[turn % actions.length];
+  const action = actions[turn % actions.length];
+  // begging 타입이면 랜덤 변형을 미리 결정해서 인텐트에 포함
+  if (action.type === "begging" && !action.beggingVariant) {
+    const variants = ["money", "food", "mercy", "life"];
+    return { ...action, beggingVariant: variants[Math.floor(Math.random() * variants.length)] };
+  }
+  return action;
 }
 
 // 단일 대상 데미지 적용 (방어 + 피해감소 고려)

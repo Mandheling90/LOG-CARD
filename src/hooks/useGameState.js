@@ -417,6 +417,10 @@ export function useGameState() {
         ? [...discardPile]
         : [...discardPile, card];
 
+      if (card.exhaust) {
+        result.logs.push(`🔥 ${card.name} 소진!`);
+      }
+
       if (result.drawCount > 0) {
         const {
           drawn,
@@ -441,6 +445,15 @@ export function useGameState() {
       const alive = result.enemies.filter((e) => e.hp > 0);
       if (alive.length === 0) {
         addLog("적을 모두 제압했다!");
+        // 보스 처치 시 체력 50% 회복
+        const defeatedBoss = result.enemies.find((e) => e.bossId);
+        if (defeatedBoss) {
+          const healTo = Math.floor(result.player.maxHp * 0.5);
+          const newHp = Math.max(result.player.hp, healTo);
+          result.player = { ...result.player, hp: newHp };
+          setPlayer(result.player);
+          addLog("보스 격파! → 체력 회복!");
+        }
         const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
         if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
           setPhase(GAME_PHASE.VICTORY);
@@ -680,11 +693,37 @@ export function useGameState() {
         let dmgRed = e.damageReduction || 0;
         let dmgRedTurns = (e.damageReductionTurns || 0) - 1;
         if (dmgRedTurns <= 0) { dmgRed = 0; dmgRedTurns = 0; }
-        if (intent?.type === "defend" || intent?.type === "buff_armor") return { ...e, damageReduction: dmgRed, damageReductionTurns: dmgRedTurns };
+        if (intent?.type === "defend" || intent?.type === "buff_armor" || e.bossId) return { ...e, damageReduction: dmgRed, damageReductionTurns: dmgRedTurns };
         return { ...e, block: 0, damageReduction: dmgRed, damageReductionTurns: dmgRedTurns };
       });
 
       if (fp.hp <= 0) {
+        // 각성 보스(오탁룡 장홍)전 패배 시 구제
+        const awakenedBoss = fe.find((e) => e.bossId === "wisungae" && e.bossPhase === 2);
+        if (awakenedBoss) {
+          const healedHp = Math.floor(fp.maxHp * 0.5);
+          fp = { ...fp, hp: healedHp };
+          setPlayer(fp);
+          setEnemies(fe);
+          finishLogs.push(`"좀더 정진하게!"`, `장홍이 떠났다. 체력이 ${healedHp}만큼 회복되었다.`);
+          addLogs(finishLogs);
+          setIsEnemyTurn(false);
+          setBossCleared(true);
+          // 시혜 카드 제거
+          setDeck((prev) => prev.filter((c) => c.id !== "sihye"));
+          // 다음 장 전환
+          const nextChapter = chapter + 1;
+          const newMap = generateMap(FLOORS_PER_CHAPTER);
+          setChapter(nextChapter);
+          setMapFloors(newMap);
+          setCurrentFloor(0);
+          setVisitedNodes(["0-0"]);
+          setCurrentNodeId("0-0");
+          setBossCleared(false);
+          addLog(`제${nextChapter}장 — 새로운 여정이 시작된다!`);
+          setPhase(GAME_PHASE.MAP);
+          return;
+        }
         setPlayer(fp);
         setEnemies(fe);
         setPhase(GAME_PHASE.GAME_OVER);
@@ -697,6 +736,13 @@ export function useGameState() {
       // 반격 등으로 적 전멸 시 승리 처리
       const allDead = fe.every((e) => e.hp <= 0);
       if (allDead) {
+        // 보스 처치 시 체력 50% 회복
+        const defeatedBoss = fe.find((e) => e.bossId);
+        if (defeatedBoss) {
+          const healTo = Math.floor(fp.maxHp * 0.5);
+          fp = { ...fp, hp: Math.max(fp.hp, healTo) };
+          finishLogs.push("보스 격파! → 체력 회복!");
+        }
         setPlayer(fp);
         setEnemies(fe);
         finishLogs.push("적을 모두 제압했다!");
@@ -751,12 +797,28 @@ export function useGameState() {
       fb = buffResult.buffs;
       finishLogs.push(...buffResult.logs);
 
+      // 디버프: 드로우 제한
+      const drawLimitBuff = fb.find((b) => b.drawLimit);
+      const actualDrawCount = drawLimitBuff
+        ? Math.min(HAND_SIZE + pouchBonus, drawLimitBuff.drawLimit)
+        : HAND_SIZE + pouchBonus;
+      if (drawLimitBuff) {
+        finishLogs.push(`${drawLimitBuff.name} → 드로우 ${drawLimitBuff.drawLimit}장 제한!`);
+      }
+
+      // 디버프: 에너지 감소
+      const energyReduction = fb.reduce((sum, b) => sum + (b.energyReduction || 0), 0);
+      const actualEnergy = Math.max(1, MAX_ENERGY - energyReduction);
+      if (energyReduction > 0) {
+        finishLogs.push(`기력 저하! → 기력 ${actualEnergy}/${MAX_ENERGY}`);
+      }
+
       const allDiscard = [...discardPile, ...hand];
       const {
         drawn,
         drawPile: newDrawPile,
         discardPile: newDiscardPile,
-      } = drawCards(drawPile, allDiscard, HAND_SIZE + pouchBonus);
+      } = drawCards(drawPile, allDiscard, actualDrawCount);
 
       const MAX_TAEGUK_CARRY = 3;
       if (ft > MAX_TAEGUK_CARRY) {
@@ -767,7 +829,7 @@ export function useGameState() {
       setPlayer(fp);
       setEnemies(fe);
       setTurn(newTurn);
-      setEnergy(MAX_ENERGY);
+      setEnergy(actualEnergy);
       setHand(drawn);
       setDrawPile(newDrawPile);
       setDiscardPile(newDiscardPile);

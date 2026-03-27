@@ -7,12 +7,17 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
   const hpPercent = Math.max(0, (enemy.hp / maxHp) * 100)
 
   const intentTips = {
-    attack: `다음 턴에 ${intent?.damage + (enemy.strength || 0)} 피해를 줍니다`,
+    attack: `다음 턴에 ${intent?.damage + (enemy.strength || 0)}${intent?.hits > 1 ? `×${intent.hits}` : ''} 피해를 줍니다`,
     defend: `다음 턴에 방어력 ${intent?.block}을 얻습니다`,
-    begging: '구걸: 시혜/공격/방치에 따라 다른 결과',
+    begging: intent?.beggingVariant ? {
+      money: '💰 돈구걸: 시혜/공격/방치에 따라 다른 결과',
+      food: '🍚 밥구걸: 시혜/공격/방치에 따라 다른 결과',
+      mercy: '🙏 자비구걸: 시혜/공격/방치에 따라 다른 결과',
+      life: '💀 목숨구걸: 시혜/공격/방치에 따라 다른 결과',
+    }[intent.beggingVariant] : '구걸',
     buff_strength: `공력 +${intent?.value} 강화`,
     heal: `체력 ${intent?.value} 회복`,
-    rage: `${intent?.damage + (enemy.strength || 0)} 공격 + 공력 +${intent?.strengthGain} 강화`,
+    rage: `${intent?.damage + (enemy.strength || 0)}${intent?.hits > 1 ? `×${intent.hits}` : ''} 공격 + 공력 +${intent?.strengthGain} 강화`,
     debuff_vulnerable: `받는 피해 증가 저주 (${intent?.duration || 2}턴)`,
     buff_armor: `방어 +${intent?.block || 0}, 피해 감소 (${intent?.duration || 2}턴)`,
   }
@@ -99,13 +104,13 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
               : intent.type === 'begging' ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
               : 'bg-blue-900/60 text-blue-300 border border-blue-700'
           }`}>
-            {intent.type === 'attack' ? `⚔️ ${intent.damage + (enemy.strength || 0)}`
-              : intent.type === 'rage' ? `🔥 ${intent.damage + (enemy.strength || 0)}`
+            {intent.type === 'attack' ? `⚔️ ${intent.damage + (enemy.strength || 0)}${intent.hits > 1 ? `×${intent.hits}` : ''}`
+              : intent.type === 'rage' ? `🔥 ${intent.damage + (enemy.strength || 0)}${intent.hits > 1 ? `×${intent.hits}` : ''}`
               : intent.type === 'buff_strength' ? `💪 +${intent.value}`
               : intent.type === 'heal' ? `💚 +${intent.value}`
               : intent.type === 'debuff_vulnerable' ? '☠️ 저주'
               : intent.type === 'buff_armor' ? `🛡️ 철벽`
-              : intent.type === 'begging' ? '🙏 구걸'
+              : intent.type === 'begging' ? `${{money:'💰',food:'🍚',mercy:'🙏',life:'💀'}[intent.beggingVariant] || '🙏'} ${{money:'돈구걸',food:'밥구걸',mercy:'자비구걸',life:'목숨구걸'}[intent.beggingVariant] || '구걸'}`
               : `🛡️ ${intent.block}`
             }
           </div>

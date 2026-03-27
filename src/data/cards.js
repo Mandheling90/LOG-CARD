@@ -567,7 +567,8 @@ export const SIHYE_CARD = {
   type: CARD_TYPES.SIMBEOP,
   rarity: RARITY.COMMON,
   cost: 3,
-  description: "태극 3 소모.\n위선개에게 자비를 베푼다.",
+  exhaust: true,
+  description: "태극 3 소모.\n위선개에게 자비를 베푼다. (소진)",
   effects: [
     { type: "consumeTaegukCost", value: 3 },
     { type: "sihye" },
