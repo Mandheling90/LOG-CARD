@@ -6,8 +6,6 @@ import {
   cardNeedsTarget,
   DEBUG_CARD,
   BASE_CARDS,
-  SIHYE_CARD,
-  JJOKBAK_CARD,
 } from "../data/cards";
 import {
   getEnemiesForFloor,
@@ -21,9 +19,17 @@ import {
   drawCards,
   getEnemyIntent,
   processCardEffects,
-  processEnemyAttack,
   applyBuffsOnTurnStart,
 } from "../utils/gameLogic";
+import { processEnemyAction } from "../utils/enemyActions";
+import {
+  applyPreCardArtifacts,
+  applyPostCardArtifacts,
+  applyTurnEndArtifacts,
+  applyTurnStartArtifacts,
+} from "../utils/artifactEffects";
+import { prepareBossDeck } from "../utils/bossLogic";
+import { generateBattleRewards } from "../utils/battleRewards";
 
 const INITIAL_HP = 80;
 const MAX_ENERGY = 3;
@@ -70,8 +76,6 @@ export function useGameState() {
   const [artifactSwitchTotal, setArtifactSwitchTotal] = useState(0);
   const [cardsPlayedThisTurn, setCardsPlayedThisTurn] = useState(0);
 
-  const hasArtifact = useCallback((id) => artifacts.includes(id), [artifacts]);
-
   // 보스 전투 추적 (ref로 stale closure 방지)
   const sihyeUsedRef = useRef(false);
   const bossAttackedRef = useRef(false);
@@ -90,7 +94,7 @@ export function useGameState() {
   // 적 턴 애니메이션 상태
   const [isEnemyTurn, setIsEnemyTurn] = useState(false);
   const [activeEnemyIndex, setActiveEnemyIndex] = useState(null);
-  const [activeEnemyAction, setActiveEnemyAction] = useState(null); // 'attack' | 'defend' | 'stun'
+  const [activeEnemyAction, setActiveEnemyAction] = useState(null);
   const [activeEnemyDamage, setActiveEnemyDamage] = useState(0);
   const enemyTurnTimers = useRef([]);
 
@@ -133,7 +137,6 @@ export function useGameState() {
   // 선택 가능한 다음 노드 계산
   function getAvailableNodes(floors, visited, curNodeId) {
     if (!curNodeId) {
-      // 게임 시작: 1층 노드 전부
       return floors[1]?.nodes.map((n) => n.id) || [];
     }
     const { floor } = parseNodeId(curNodeId);
@@ -161,7 +164,6 @@ export function useGameState() {
       setArtifacts([]);
     }
 
-    // 맵 초기화
     setChapter(1);
     setMapFloors(map);
     setCurrentFloor(0);
@@ -185,7 +187,6 @@ export function useGameState() {
         case NODE_TYPES.BATTLE:
         case NODE_TYPES.ELITE:
         case NODE_TYPES.BOSS: {
-          // 전투 시작 (인라인)
           let newEnemies;
           let isBossBattle = false;
           if (IS_DEBUG) {
@@ -210,18 +211,10 @@ export function useGameState() {
             }
           }
 
-          // 보스전: 시혜 카드 5장 삽입
+          // 보스전: 시혜 카드 삽입 (bossLogic 모듈 사용)
           const allCards =
-            isBossBattle && newEnemies[0]?.bossId === "wisungae"
-              ? [
-                  ...deck,
-                  ...Array(5)
-                    .fill(null)
-                    .map((_, i) => ({
-                      ...SIHYE_CARD,
-                      uid: `sihye_${i}_${Date.now()}`,
-                    })),
-                ]
+            isBossBattle
+              ? prepareBossDeck(deck, newEnemies[0])
               : [...deck];
           const shuffled = shuffleArray(allCards);
           const { drawn, drawPile: newDrawPile } = drawCards(
@@ -341,11 +334,13 @@ export function useGameState() {
       if (!card || !canPlayCard(card)) return;
       const cost = getEffectiveCost(card);
 
-      // 기물: 파손된 도경 - 체력 50% 이하 시 태극 획득 2배
-      let effectBuffs = [...buffs];
-      if (hasArtifact("broken_scripture") && player.hp <= player.maxHp * 0.5) {
-        effectBuffs = [...effectBuffs, { taegukMultiplier: 2 }];
-      }
+      // 기물: pre-card artifacts (파손된 도경 등)
+      const { buffs: effectBuffs } = applyPreCardArtifacts(
+        artifacts,
+        card,
+        player,
+        buffs,
+      );
 
       const result = processCardEffects(
         card,
@@ -364,31 +359,15 @@ export function useGameState() {
         targetIndex,
       );
 
-      // 기물: 경공 비급 조각 - 보법 사용 시 추가 드로우
-      if (hasArtifact("lightfoot_scrap") && card.type === "bobeop") {
-        result.drawCount = (result.drawCount || 0) + 1;
-        result.logs.push("경공 비급 조각 → 카드 1장 추가!");
-      }
-
-      // 기물: 음양패 - 전환 5회마다 공력 +1
-      const prevStance = stance;
-      const newStance = result.stance;
-      if (
-        hasArtifact("yin_yang_token") &&
-        prevStance &&
-        newStance &&
-        prevStance !== newStance
-      ) {
-        const newTotal = artifactSwitchTotal + 1;
-        setArtifactSwitchTotal(newTotal);
-        if (newTotal % 5 === 0) {
-          result.player = {
-            ...result.player,
-            strength: (result.player.strength || 0) + 1,
-          };
-          result.logs.push("음양패 → 전환 5회 달성! 공력 +1");
-        }
-      }
+      // 기물: post-card artifacts (경공 비급 조각, 음양패 등)
+      const { newArtifactSwitchTotal } = applyPostCardArtifacts(
+        artifacts,
+        card,
+        result,
+        stance,
+        artifactSwitchTotal,
+      );
+      setArtifactSwitchTotal(newArtifactSwitchTotal);
 
       // 카드 사용 카운트 (목탁용)
       setCardsPlayedThisTurn((prev) => prev + 1);
@@ -434,7 +413,6 @@ export function useGameState() {
 
       let newHand = hand.filter((_, i) => i !== cardIndex);
       let currentDrawPile = drawPile;
-      // exhaust 카드는 버린 패에 넣지 않고 소진 (전투 중 재사용 불가)
       let currentDiscardPile = card.exhaust
         ? [...discardPile]
         : [...discardPile, card];
@@ -465,47 +443,21 @@ export function useGameState() {
         addLog("적을 모두 제압했다!");
         const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
         if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
-          // 최종장 보스 클리어 → 승리
           setPhase(GAME_PHASE.VICTORY);
-        } else if (isBossFloor) {
-          // 장 보스 클리어 → 보스 보상 + 다음 장 진행
-          setBossCleared(true);
-          const bossEnemy = result.enemies.find((e) => e.bossId);
-          let pool = shuffleArray(REWARD_POOL);
-          const rewards = pool.slice(0, 3);
-          // 위선개 보스 보상: 쪽박
-          if (bossEnemy?.bossId === "wisungae" && bossEnemy.bossPhase === 2) {
-            rewards[0] = JJOKBAK_CARD;
-          }
-          if (LEGENDARY_POOL.length > 0) {
-            const lPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = lPool[0];
-          }
-          setRewardCards(
-            rewards.map((c, i) => ({
-              ...c,
-              uid: `reward_ch${chapter}_boss_${i}`,
-            })),
-          );
-          setPhase(GAME_PHASE.REWARD);
         } else {
-          // 일반 전투 보상
-          let pool = shuffleArray(REWARD_POOL);
-          const rewards = pool.slice(0, 3);
-          // 장의 후반부(3층 이상)에서 전설 카드 포함 가능
-          if (
-            currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) &&
-            LEGENDARY_POOL.length > 0
-          ) {
-            const lPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = lPool[0];
-          }
-          setRewardCards(
-            rewards.map((c, i) => ({
-              ...c,
-              uid: `reward_${chapter}_${currentFloor}_${i}`,
-            })),
+          const rewardResult = generateBattleRewards(
+            result.enemies,
+            currentFloor,
+            chapter,
+            FLOORS_PER_CHAPTER,
+            TOTAL_CHAPTERS,
+            isBossFloor,
+            `reward_${chapter}_${currentFloor}`,
           );
+          if (rewardResult.isBossCleared) {
+            setBossCleared(true);
+          }
+          setRewardCards(rewardResult.rewards);
           setPhase(GAME_PHASE.REWARD);
         }
       }
@@ -531,7 +483,7 @@ export function useGameState() {
       addLogs,
       getEffectiveCost,
       canPlayCard,
-      hasArtifact,
+      artifacts,
       artifactSwitchTotal,
     ],
   );
@@ -544,7 +496,6 @@ export function useGameState() {
       if (!card || !canPlayCard(card)) return;
 
       if (cardNeedsTarget(card)) {
-        // 적이 1마리면 자동 타겟
         const aliveEnemies = enemies
           .map((e, i) => ({ ...e, idx: i }))
           .filter((e) => e.hp > 0);
@@ -578,15 +529,12 @@ export function useGameState() {
     const alive = enemies.filter((e) => e.hp > 0);
     if (alive.length === 0) return;
 
-    // 기물: 낡은 주머니 - 손패 2장 이하면 다음턴 추가 드로우
-    const pouchBonus = hasArtifact("old_pouch") && hand.length <= 2 ? 2 : 0;
-    if (pouchBonus > 0) addLog("낡은 주머니 → 다음 턴 카드 2장 추가!");
-
-    // 기물: 낡은 목탁 - 카드 3장 미만 사용 시 체력 +5
-    let moktakHeal = 0;
-    if (hasArtifact("old_moktak") && cardsPlayedThisTurn < 3) {
-      moktakHeal = 5;
-      addLog("낡은 목탁 → 체력 +5 회복!");
+    // 기물: 턴 종료 아티팩트 (낡은 주머니, 낡은 목탁)
+    const turnEndArtifacts = applyTurnEndArtifacts(artifacts, hand, cardsPlayedThisTurn);
+    const pouchBonus = turnEndArtifacts.pouchBonus;
+    const moktakHeal = turnEndArtifacts.moktakHeal;
+    if (turnEndArtifacts.logs.length > 0) {
+      addLogs(turnEndArtifacts.logs);
     }
 
     setSelectedCardIndex(null);
@@ -594,7 +542,7 @@ export function useGameState() {
     enemyTurnTimers.current.forEach((t) => clearTimeout(t));
     enemyTurnTimers.current = [];
 
-    // ── 1. 적 행동 미리 계산 ──
+    // ── 1. 적 행동 미리 계산 (processEnemyAction 사용) ──
     let cp = { ...player };
     if (moktakHeal > 0) {
       cp.hp = Math.min(cp.maxHp, cp.hp + moktakHeal);
@@ -605,147 +553,45 @@ export function useGameState() {
     let cCounter = counter;
     let cBuffs = buffs.map((b) => ({ ...b }));
     let cTaeguk = taeguk;
+    let cSihyeUsed = sihyeUsedRef.current;
+    let cBossAttacked = bossAttackedRef.current;
 
     const steps = [];
 
     ce.forEach((enemy, i) => {
       if (enemy.hp <= 0) return;
 
-      const stepLogs = [];
-
-      if (enemy.debuffs?.includes("stun")) {
-        ce[i] = {
-          ...ce[i],
-          debuffs: enemy.debuffs.filter((d) => d !== "stun"),
-        };
-        stepLogs.push(`${enemy.name} 기맥차단! 행동 불가!`);
-        steps.push({
-          enemyIndex: i,
-          actionType: "stun",
-          logs: stepLogs,
-          player: { ...cp },
-          enemies: ce.map((e) => ({ ...e })),
+      const result = processEnemyAction(
+        enemy,
+        i,
+        enemyIntents[i],
+        {
+          player: cp,
+          enemies: ce,
+          buffs: cBuffs,
           taeguk: cTaeguk,
           evasionCount: cEvCount,
           evasionChance: cEvChance,
-          buffs: cBuffs.map((b) => ({ ...b })),
-        });
-        return;
-      }
-
-      const intent = enemyIntents[i];
-      if (!intent) return;
-
-      const prevHp = cp.hp;
-      const prevBlock = cp.block || 0;
-
-      if (intent.type === "attack") {
-        stepLogs.push(`${enemy.name}의 공격 → ${intent.damage} 타격`);
-        const result = processEnemyAttack(intent.damage, {
-          player: cp,
-          evasionCount: cEvCount,
-          evasionChance: cEvChance,
           counter: cCounter,
-          logs: [],
-          buffs: cBuffs,
-        });
-        cp = result.player;
-        cEvCount = result.evasionCount;
-        cEvChance = result.evasionChance;
-        cBuffs = result.buffs;
-        stepLogs.push(...result.logs);
+        },
+        { sihyeUsed: cSihyeUsed, bossAttacked: cBossAttacked },
+      );
 
-        if (result.dodged && result.onEvadeDmg > 0) {
-          const blocked = Math.min(ce[i].block || 0, result.onEvadeDmg);
-          ce[i] = {
-            ...ce[i],
-            block: Math.max(0, (ce[i].block || 0) - result.onEvadeDmg),
-            hp: ce[i].hp - (result.onEvadeDmg - blocked),
-          };
-          stepLogs.push(`반격! → ${enemy.name}에게 ${result.onEvadeDmg} 피해`);
-        }
-        if (result.dodged && result.onEvadeTaeguk > 0) {
-          cTaeguk += result.onEvadeTaeguk;
-          stepLogs.push(`회피 보너스! → 태극 +${result.onEvadeTaeguk}`);
-        }
-        if (!result.dodged && result.counterDmg > 0) {
-          const blocked = Math.min(ce[i].block || 0, result.counterDmg);
-          ce[i] = {
-            ...ce[i],
-            block: Math.max(0, (ce[i].block || 0) - result.counterDmg),
-            hp: ce[i].hp - (result.counterDmg - blocked),
-          };
-          stepLogs.push(`반격! → ${enemy.name}에게 ${result.counterDmg} 반사`);
-        }
-      } else if (intent.type === "defend") {
-        ce[i] = { ...ce[i], block: intent.block };
-        stepLogs.push(`${enemy.name} 수비 태세 → ${intent.block} 방어`);
-      } else if (intent.type === "begging") {
-        // 구걸 해결
-        if (sihyeUsedRef.current) {
-          // 시혜 사용 → 크게 회복 + 버프, sihyeCount 증가
-          const heal = Math.floor(ce[i].hp * 0.3) + 20;
-          ce[i] = {
-            ...ce[i],
-            hp: ce[i].hp + heal,
-            sihyeCount: (ce[i].sihyeCount || 0) + 1,
-          };
-          stepLogs.push(
-            `${enemy.name}: "좋다, 좋아!" → 체력 +${heal}, 공력 강화!`,
-          );
-          // 시혜 3회 → 각성
-          if (ce[i].sihyeCount >= 3 && ce[i].phase2) {
-            const p2 = ce[i].phase2;
-            ce[i] = {
-              ...ce[i],
-              name: p2.name,
-              emoji: p2.emoji,
-              hp: p2.hp,
-              actions: p2.actions,
-              bossPhase: 2,
-            };
-            stepLogs.push(
-              `나를 대적하지 않기에 나의 무공은 너를 해할 수 없구나`,
-              `위선개는 잊었던 걸인의 마음을 깨달았다! ${p2.name}(으)로 각성!`,
-              `이젠 적이아닌 협으로 그대에게 가르침을 주겠다`,
-            );
-          }
-        } else if (bossAttackedRef.current) {
-          // 공격 → 플레이어 디버프
-          cBuffs = [
-            ...cBuffs,
-            {
-              buffId: "beggar_curse_" + Date.now(),
-              name: "약점 노출",
-              duration: 3,
-              damageReceiveMultiplier: 1.5,
-            },
-          ];
-          stepLogs.push(
-            `${enemy.name}: "그러고도 정파의 고수냐!" → 내공을 담은 꾸짖음! (받는 피해 50% 증가, 3턴)`,
-          );
-        } else {
-          // 방치 → 회복 + 소규모 버프
-          const heal = Math.floor(ce[i].hp * 0.15) + 10;
-          ce[i] = { ...ce[i], hp: ce[i].hp + heal };
-          stepLogs.push(`${enemy.name}: 구걸로 기력 회복 → 체력 +${heal}`);
-        }
-        sihyeUsedRef.current = false;
-        bossAttackedRef.current = false;
-      }
-
-      // 피격 데미지 계산 (HP 손실 + 방어 소모)
-      const damageTaken =
-        intent.type === "attack"
-          ? Math.max(0, prevHp - cp.hp) +
-            Math.max(0, prevBlock - (cp.block || 0))
-          : 0;
+      cp = result.player;
+      ce = result.enemies;
+      cEvCount = result.evasionCount;
+      cEvChance = result.evasionChance;
+      cCounter = result.counter;
+      cBuffs = result.buffs;
+      cTaeguk = result.taeguk;
+      cSihyeUsed = result.sihyeUsed;
+      cBossAttacked = result.bossAttacked;
 
       steps.push({
         enemyIndex: i,
-        actionType: intent.type,
-        damageTaken,
-        logs: stepLogs,
+        actionType: result.actionType || "stun",
+        damageTaken: result.damageTaken,
+        logs: result.logs,
         player: { ...cp },
         enemies: ce.map((e) => ({ ...e })),
         taeguk: cTaeguk,
@@ -759,7 +605,6 @@ export function useGameState() {
     const STEP_DELAY = 700;
 
     steps.forEach((step, idx) => {
-      // 적 하이라이트 표시
       const highlightTimer = setTimeout(() => {
         setActiveEnemyIndex(step.enemyIndex);
         setActiveEnemyAction(step.actionType);
@@ -767,7 +612,6 @@ export function useGameState() {
       }, idx * STEP_DELAY);
       enemyTurnTimers.current.push(highlightTimer);
 
-      // 결과 적용
       const applyTimer = setTimeout(
         () => {
           setPlayer(step.player);
@@ -777,7 +621,6 @@ export function useGameState() {
           setEvasionChance(step.evasionChance);
           setBuffs(step.buffs);
           addLogs(step.logs);
-          // 피격 시 화면 흔들림
           if (step.damageTaken > 0) {
             setBattleEffect({
               type: "enemy_attack",
@@ -834,8 +677,11 @@ export function useGameState() {
       fe = fe.map((e, i) => {
         if (e.hp <= 0) return e;
         const intent = enemyIntents[i];
-        if (intent?.type === "defend") return e;
-        return { ...e, block: 0 };
+        let dmgRed = e.damageReduction || 0;
+        let dmgRedTurns = (e.damageReductionTurns || 0) - 1;
+        if (dmgRedTurns <= 0) { dmgRed = 0; dmgRedTurns = 0; }
+        if (intent?.type === "defend" || intent?.type === "buff_armor") return { ...e, damageReduction: dmgRed, damageReductionTurns: dmgRedTurns };
+        return { ...e, block: 0, damageReduction: dmgRed, damageReductionTurns: dmgRedTurns };
       });
 
       if (fp.hp <= 0) {
@@ -860,60 +706,37 @@ export function useGameState() {
         const isBossFloor = currentFloor >= FLOORS_PER_CHAPTER;
         if (isBossFloor && chapter >= TOTAL_CHAPTERS) {
           setPhase(GAME_PHASE.VICTORY);
-        } else if (isBossFloor) {
-          setBossCleared(true);
-          const bossEnemy = fe.find((e) => e.bossId);
-          let pool = shuffleArray(REWARD_POOL);
-          const rewards = pool.slice(0, 3);
-          if (bossEnemy?.bossId === "wisungae" && bossEnemy.bossPhase === 2) {
-            rewards[0] = JJOKBAK_CARD;
-          }
-          if (LEGENDARY_POOL.length > 0) {
-            const lPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = lPool[0];
-          }
-          setRewardCards(
-            rewards.map((c, idx) => ({
-              ...c,
-              uid: `reward_${chapter}_${currentFloor}_counter_boss_${idx}`,
-            })),
-          );
-          setPhase(GAME_PHASE.REWARD);
         } else {
-          let pool = shuffleArray(REWARD_POOL);
-          const rewards = pool.slice(0, 3);
-          if (
-            currentFloor >= Math.ceil(FLOORS_PER_CHAPTER * 0.6) &&
-            LEGENDARY_POOL.length > 0
-          ) {
-            const lPool = shuffleArray(LEGENDARY_POOL);
-            rewards[2] = lPool[0];
-          }
-          setRewardCards(
-            rewards.map((c, i) => ({
-              ...c,
-              uid: `reward_${chapter}_${currentFloor}_counter_${i}`,
-            })),
+          const rewardResult = generateBattleRewards(
+            fe,
+            currentFloor,
+            chapter,
+            FLOORS_PER_CHAPTER,
+            TOTAL_CHAPTERS,
+            isBossFloor,
+            `reward_${chapter}_${currentFloor}_counter`,
           );
+          if (rewardResult.isBossCleared) {
+            setBossCleared(true);
+          }
+          setRewardCards(rewardResult.rewards);
           setPhase(GAME_PHASE.REWARD);
         }
         return;
       }
 
-      // 기물: 혈염석 - 플레이어가 체력을 잃었으면 다음 턴 공력 +2
-      if (hasArtifact("blood_stone") && fp.hp < player.hp) {
-        fb = [
-          ...fb,
-          {
-            buffId: "blood_stone_" + Date.now(),
-            name: "혈염석",
-            duration: 2,
-            grantedStrength: 2,
-          },
-        ];
-        fp = { ...fp, strength: (fp.strength || 0) + 2 };
-        finishLogs.push("혈염석 → 피를 흘려 공력 +2!");
-      }
+      // 기물: 턴 시작 아티팩트 (혈염석, 청명등)
+      const turnStartResult = applyTurnStartArtifacts(
+        artifacts,
+        fp,
+        player.hp,
+        fb,
+        ft,
+      );
+      fp = turnStartResult.player;
+      fb = turnStartResult.buffs;
+      ft = turnStartResult.taeguk;
+      finishLogs.push(...turnStartResult.logs);
 
       const newTurn = turn + 1;
       const buffResult = applyBuffsOnTurnStart({
@@ -927,17 +750,6 @@ export function useGameState() {
       ft = buffResult.taeguk;
       fb = buffResult.buffs;
       finishLogs.push(...buffResult.logs);
-
-      // 기물: 청명등 - 디버프(피해 증가 버프) 있으면 태극 +1
-      if (
-        hasArtifact("clear_lantern") &&
-        fb.some(
-          (b) => b.damageReceiveMultiplier && b.damageReceiveMultiplier > 1,
-        )
-      ) {
-        ft += 1;
-        finishLogs.push("청명등 → 디버프 상태에서 태극 +1!");
-      }
 
       const allDiscard = [...discardPile, ...hand];
       const {
@@ -993,9 +805,11 @@ export function useGameState() {
     buffs,
     addLogs,
     addLog,
-    hasArtifact,
+    artifacts,
     cardsPlayedThisTurn,
     artifactSwitchTotal,
+    currentFloor,
+    chapter,
   ]);
 
   const clearBattleEffect = useCallback(() => setBattleEffect(null), []);

@@ -29,12 +29,15 @@ export function getEnemyIntent(enemy, turn) {
   return actions[turn % actions.length];
 }
 
-// 단일 대상 데미지 적용 (방어 고려)
+// 단일 대상 데미지 적용 (방어 + 피해감소 고려)
 function dealDamage(target, amount) {
   const t = { ...target };
-  const blocked = Math.min(t.block || 0, amount);
-  t.block = Math.max(0, (t.block || 0) - amount);
-  t.hp -= amount - blocked;
+  const reduced = t.damageReduction > 0
+    ? Math.max(1, Math.ceil(amount * (1 - t.damageReduction)))
+    : amount;
+  const blocked = Math.min(t.block || 0, reduced);
+  t.block = Math.max(0, (t.block || 0) - reduced);
+  t.hp -= reduced - blocked;
   return t;
 }
 

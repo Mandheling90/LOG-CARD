@@ -6,13 +6,17 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
   const maxHp = enemy.hp + 50
   const hpPercent = Math.max(0, (enemy.hp / maxHp) * 100)
 
-  const intentTip = intent
-    ? intent.type === 'attack'
-      ? `다음 턴에 ${intent.damage} 피해를 줍니다`
-      : intent.type === 'begging'
-        ? '구걸: 시혜/공격/방치에 따라 다른 결과'
-        : `다음 턴에 방어력 ${intent.block}을 얻습니다`
-    : ''
+  const intentTips = {
+    attack: `다음 턴에 ${intent?.damage + (enemy.strength || 0)} 피해를 줍니다`,
+    defend: `다음 턴에 방어력 ${intent?.block}을 얻습니다`,
+    begging: '구걸: 시혜/공격/방치에 따라 다른 결과',
+    buff_strength: `공력 +${intent?.value} 강화`,
+    heal: `체력 ${intent?.value} 회복`,
+    rage: `${intent?.damage + (enemy.strength || 0)} 공격 + 공력 +${intent?.strengthGain} 강화`,
+    debuff_vulnerable: `받는 피해 증가 저주 (${intent?.duration || 2}턴)`,
+    buff_armor: `방어 +${intent?.block || 0}, 피해 감소 (${intent?.duration || 2}턴)`,
+  }
+  const intentTip = intent ? (intentTips[intent.type] || '') : ''
 
   const actingClass = isActing
     ? actionType === 'attack'
@@ -65,26 +69,44 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
         </div>
       </Tooltip>
 
-      {enemy.block > 0 && (
-        <Tooltip text="적 방어: 피해를 먼저 흡수">
-          <div className="text-blue-300 text-xs">🛡️ {enemy.block}</div>
-        </Tooltip>
-      )}
+      <div className="flex gap-2 justify-center">
+        {enemy.block > 0 && (
+          <Tooltip text="적 방어: 피해를 먼저 흡수">
+            <span className="text-blue-300 text-xs">🛡️{enemy.block}</span>
+          </Tooltip>
+        )}
+        {enemy.strength > 0 && (
+          <Tooltip text="적 공력: 공격 시 추가 피해">
+            <span className="text-orange-300 text-xs">💪{enemy.strength}</span>
+          </Tooltip>
+        )}
+        {enemy.damageReduction > 0 && (
+          <Tooltip text={`피해 감소 ${Math.round(enemy.damageReduction * 100)}% (${enemy.damageReductionTurns}턴)`}>
+            <span className="text-cyan-300 text-xs">🔰{Math.round(enemy.damageReduction * 100)}%</span>
+          </Tooltip>
+        )}
+      </div>
 
       {intent && (
         <Tooltip text={intentTip}>
           <div className={`mt-0.5 px-2.5 py-0.5 rounded text-xs font-medium ${
-            intent.type === 'attack'
-              ? 'bg-red-900/60 text-red-300 border border-red-700'
-              : intent.type === 'begging'
-                ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
-                : 'bg-blue-900/60 text-blue-300 border border-blue-700'
+            intent.type === 'attack' ? 'bg-red-900/60 text-red-300 border border-red-700'
+              : intent.type === 'rage' ? 'bg-orange-900/60 text-orange-300 border border-orange-700'
+              : intent.type === 'buff_strength' ? 'bg-orange-900/60 text-orange-300 border border-orange-700'
+              : intent.type === 'heal' ? 'bg-green-900/60 text-green-300 border border-green-700'
+              : intent.type === 'debuff_vulnerable' ? 'bg-purple-900/60 text-purple-300 border border-purple-700'
+              : intent.type === 'buff_armor' ? 'bg-cyan-900/60 text-cyan-300 border border-cyan-700'
+              : intent.type === 'begging' ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
+              : 'bg-blue-900/60 text-blue-300 border border-blue-700'
           }`}>
-            {intent.type === 'attack'
-              ? `⚔️ ${intent.damage}`
-              : intent.type === 'begging'
-                ? '🙏 구걸'
-                : `🛡️ ${intent.block}`
+            {intent.type === 'attack' ? `⚔️ ${intent.damage + (enemy.strength || 0)}`
+              : intent.type === 'rage' ? `🔥 ${intent.damage + (enemy.strength || 0)}`
+              : intent.type === 'buff_strength' ? `💪 +${intent.value}`
+              : intent.type === 'heal' ? `💚 +${intent.value}`
+              : intent.type === 'debuff_vulnerable' ? '☠️ 저주'
+              : intent.type === 'buff_armor' ? `🛡️ 철벽`
+              : intent.type === 'begging' ? '🙏 구걸'
+              : `🛡️ ${intent.block}`
             }
           </div>
         </Tooltip>

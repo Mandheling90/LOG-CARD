@@ -63,6 +63,9 @@ function createEnemy(template) {
   return {
     ...template,
     block: 0,
+    strength: 0,
+    damageReduction: 0,
+    damageReductionTurns: 0,
     debuffs: [],
     uid: `enemy_${enemyUidCounter++}`,
   };
