@@ -409,6 +409,7 @@ export function processEnemyAction(enemy, enemyIndex, intent, state, bossRefs) {
           hp: p2.hp,
           actions: p2.actions,
           bossPhase: 2,
+          sihyeCount: 0,
         };
         logs.push(
           `거지를 대적하지 않기에 나의 무공은 그대를 해할 수 없네`,

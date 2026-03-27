@@ -277,7 +277,7 @@ export function useGameState() {
           setPhase(GAME_PHASE.MAP);
       }
     },
-    [deck, addLog, resetBattleState, nextBattleDamage],
+    [deck, chapter, addLog, resetBattleState, nextBattleDamage],
   );
 
   // 대상 선택 (적 클릭)

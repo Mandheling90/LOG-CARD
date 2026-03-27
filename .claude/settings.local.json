@@ -6,7 +6,8 @@
       "Bash(npm run:*)",
       "Bash(npx vite:*)",
       "Bash(xargs -I {} basename {})",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(grep -r \"type.*aoeThresholdReduce\\\\|convertToAOE\\\\|blockToDamage\" src/data src/utils --include=*.js)"
     ]
   }
 }
