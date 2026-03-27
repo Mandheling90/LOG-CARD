@@ -791,10 +791,6 @@ export function useGameState() {
             defeatedBoss.bossPhase === 2
           ) {
             finishLogs.push(
-              `강천: "...좋은 검이었다. 자네 검에도 자비가 있더군."`,
-            );
-          } else if (defeatedBoss.bossId === "sword_ghost") {
-            finishLogs.push(
               `강천: "...아직 내 검은 완성되지 않았다. 다음에 다시 만나지."`,
             );
           } else {
