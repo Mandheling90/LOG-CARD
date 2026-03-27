@@ -170,8 +170,7 @@ export function getBossForChapter(chapter) {
             },
             {
               type: "attack",
-              damage: 7,
-              hits: 2,
+              damage: 10,
               stripBlock: true,
               label: "타구봉법 - 천하무구",
               log: "천하에 개가 없다!",

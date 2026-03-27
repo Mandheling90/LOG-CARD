@@ -7,7 +7,7 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
   const hpPercent = Math.max(0, (enemy.hp / maxHp) * 100)
 
   const intentTips = {
-    attack: `다음 턴에 ${intent?.damage + (enemy.strength || 0)}${intent?.hits > 1 ? `×${intent.hits}` : ''} 피해를 줍니다`,
+    attack: `다음 턴에 ${intent?.damage + (enemy.strength || 0)}${intent?.hits > 1 ? `×${intent.hits}` : ''} 피해를 줍니다${intent?.stripBlock ? ' (호신강기 관통!)' : ''}`,
     defend: `다음 턴에 방어력 ${intent?.block}을 얻습니다`,
     begging: intent?.beggingVariant ? {
       money: '💰 돈구걸: 시혜/공격/방치에 따라 다른 결과',
@@ -104,7 +104,7 @@ export default function EnemyDisplay({ enemy, intent, selectable, selected, onCl
               : intent.type === 'begging' ? 'bg-yellow-900/60 text-yellow-300 border border-yellow-700'
               : 'bg-blue-900/60 text-blue-300 border border-blue-700'
           }`}>
-            {intent.type === 'attack' ? `⚔️ ${intent.damage + (enemy.strength || 0)}${intent.hits > 1 ? `×${intent.hits}` : ''}`
+            {intent.type === 'attack' ? `${intent.stripBlock ? '💥' : '⚔️'} ${intent.damage + (enemy.strength || 0)}${intent.hits > 1 ? `×${intent.hits}` : ''}${intent.stripBlock ? '!' : ''}`
               : intent.type === 'rage' ? `🔥 ${intent.damage + (enemy.strength || 0)}${intent.hits > 1 ? `×${intent.hits}` : ''}`
               : intent.type === 'buff_strength' ? `💪 +${intent.value}`
               : intent.type === 'heal' ? `💚 +${intent.value}`
